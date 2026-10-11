@@ -1,0 +1,20 @@
+[package]
+name = "changegraph-cli"
+description = "Command-line interface for ChangeGraph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "changegraph"
+path = "src/main.rs"
+
+[dependencies]
+changegraph-core = { path = "../changegraph-core" }
+clap.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true

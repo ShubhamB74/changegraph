@@ -1,0 +1,7 @@
+/target
+node_modules/
+.next/
+frontend/out/
+*.log
+.DS_Store
+# NOTE: Cargo.lock is intentionally NOT ignored (this workspace ships a binary).
