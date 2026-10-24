@@ -2,10 +2,13 @@
 
 Local-first, deterministic change-impact analysis for TypeScript/JavaScript repositories, written in Rust.
 
-> **Status: Phase 1 of 8.** The engine validates a Git repository, identifies changed files
-> (merge-base or working-tree mode), discovers source/test files, and emits a versioned JSON
-> report. Dependency graph, impact analysis, test recommendations and the UI are **not
-> implemented yet** — see the roadmap. No LLM is used anywhere in the analysis engine.
+> **Status: Phase 3 of 8.** The engine validates a Git repository, identifies changed files
+> (merge-base or working-tree mode), parses TypeScript/JavaScript with Tree-sitter, resolves
+> imports (relative, `index`, tsconfig `paths`/`baseUrl`) and emits a versioned JSON report
+> containing the dependency graph, unresolved/external imports, cycles and parse coverage.
+> It then computes change impact: direct and transitive dependents of the changed files with
+> explainable import paths, a transparent ranking, deleted/renamed-file handling, and an
+> explicit `uncertain` class. Test recommendations and the UI are **not implemented yet**. No LLM is used anywhere in the analysis engine.
 
 ## Quick start
 
@@ -25,7 +28,7 @@ with `--base` it reports committed work and *warns* if the working tree is dirty
 modes are never mixed (details: [docs/algorithms.md](docs/algorithms.md)).
 
 Options: `--base <rev>`, `--target <rev>` (requires `--base`, default `HEAD`),
-`--format text|json`, `-x/--exclude <pattern>` (repeatable), `--no-default-excludes`,
+`--format text|json`, `--max-depth <N>`, `-x/--exclude <pattern>` (repeatable), `--no-default-excludes`,
 `-o/--output <file>`, `-v/-vv`.
 
 Exit codes: `0` ok · `1` internal/I-O · `2` usage/config · `3` path or repo problem ·
@@ -39,7 +42,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-Requires stable Rust (pinned via `rust-toolchain.toml`) and `git` on `PATH`.
+Requires stable Rust (pinned via `rust-toolchain.toml`; `Option::is_none_or` needs Rust ≥ 1.82), a C compiler
+(Tree-sitter grammars are compiled by `cc`) and `git` on `PATH`.
 The first build generates `Cargo.lock` — commit it.
 
 ## Layout
@@ -56,9 +60,9 @@ The first build generates `Cargo.lock` — commit it.
 
 | Phase | Scope | State |
 |-------|-------|-------|
-| 1 | Repo validation, git diff, discovery, JSON report, CLI | **written, not yet compiled/tested by the author** |
-| 2 | Tree-sitter import/export extraction, resolution, graph | todo |
-| 3 | Reverse-traversal impact analysis with explainable paths | todo |
+| 1 | Repo validation, git diff, discovery, JSON report, CLI | **written; not yet compiled/tested by the author** |
+| 2 | Tree-sitter import/export extraction, resolution, graph | **written; not yet compiled/tested by the author** |
+| 3 | Reverse-traversal impact analysis with explainable paths | **written; not yet compiled/tested by the author** |
 | 4 | Test recommendation with known-vs-heuristic distinction | todo |
 | 5 | Report schema hardening, depth/target options | todo |
 | 6 | Next.js + React Flow visualization | todo |
