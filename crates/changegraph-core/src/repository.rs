@@ -31,12 +31,10 @@ impl Repository {
         if !meta.is_dir() {
             return Err(ChangeGraphError::NotADirectory(path.to_path_buf()));
         }
-        let canonical = path
-            .canonicalize()
-            .map_err(|source| ChangeGraphError::Io {
-                path: path.to_path_buf(),
-                source,
-            })?;
+        let canonical = path.canonicalize().map_err(|source| ChangeGraphError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
 
         let out = run_git(&canonical, &["rev-parse", "--show-toplevel"])?;
         if !out.status.success() {

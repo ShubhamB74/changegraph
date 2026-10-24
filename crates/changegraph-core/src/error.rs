@@ -86,16 +86,18 @@ impl ChangeGraphError {
         match self {
             PathNotFound(_) => Some("check the path you passed to `analyze`"),
             NotADirectory(_) => Some("pass the repository directory, not a file"),
-            NotAGitRepository(_) => Some("run inside a Git working tree (`git init` or `git clone`)"),
+            NotAGitRepository(_) => {
+                Some("run inside a Git working tree (`git init` or `git clone`)")
+            }
             GitUnavailable(_) => Some("install Git and make sure `git` is on your PATH"),
             RevisionNotFound { .. } => Some(
                 "check spelling with `git rev-parse --verify <rev>`; \
                  in a repo with no commits, create one first; \
                  in CI, make sure the base branch was fetched (e.g. `fetch-depth: 0`)",
             ),
-            NoMergeBase { .. } => Some(
-                "the histories are unrelated or the checkout is shallow; fetch full history",
-            ),
+            NoMergeBase { .. } => {
+                Some("the histories are unrelated or the checkout is shallow; fetch full history")
+            }
             _ => None,
         }
     }

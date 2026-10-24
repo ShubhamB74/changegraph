@@ -42,8 +42,7 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
             let target_name = config.target.clone().unwrap_or_else(|| "HEAD".to_string());
             let base_commit = repo.resolve_revision(base)?;
             let target_commit = repo.resolve_revision(&target_name)?;
-            let merge_base =
-                repo.merge_base(base, &target_name, &base_commit, &target_commit)?;
+            let merge_base = repo.merge_base(base, &target_name, &base_commit, &target_commit)?;
             let changes = git_diff::diff_commits(&repo, &merge_base, &target_commit)?;
 
             if repo.has_uncommitted_changes()? {

@@ -32,17 +32,20 @@ fn sorted(mut v: Vec<Value>) -> Vec<Value> {
 /// Project a report into the shape used by the expectation files, ignoring `ignore_from`.
 fn project(report: &GraphReport, ignore_from: &[&str]) -> Value {
     let keep = |from: &str| !ignore_from.contains(&from);
-    let edges = report.edges.iter().filter(|e| keep(&e.from)).map(|e| {
-        json!({ "from": e.from, "to": e.to, "kind": e.kind, "type_only": e.type_only })
-    });
+    let edges =
+        report.edges.iter().filter(|e| keep(&e.from)).map(
+            |e| json!({ "from": e.from, "to": e.to, "kind": e.kind, "type_only": e.type_only }),
+        );
     let external = report
         .external_dependencies
         .iter()
         .filter(|e| keep(&e.from))
         .map(|e| json!({ "from": e.from, "package": e.package }));
-    let unresolved = report.unresolved_imports.iter().filter(|u| keep(&u.from)).map(|u| {
-        json!({ "from": u.from, "specifier": u.specifier, "reason": u.reason })
-    });
+    let unresolved = report
+        .unresolved_imports
+        .iter()
+        .filter(|u| keep(&u.from))
+        .map(|u| json!({ "from": u.from, "specifier": u.specifier, "reason": u.reason }));
     json!({
         "edges": sorted(edges.collect()),
         "external": sorted(external.collect()),
@@ -77,7 +80,10 @@ fn assert_same(actual: &Value, expected: &Value) {
 fn simple_project_matches_labeled_graph() {
     let (report, warnings) = analyze_fixture("simple-ts-project");
     assert!(warnings.is_empty(), "{warnings:?}");
-    assert_same(&project(&report, &[]), &expected("simple-ts-project.graph.json"));
+    assert_same(
+        &project(&report, &[]),
+        &expected("simple-ts-project.graph.json"),
+    );
     assert_eq!(report.stats.parsed_ok, report.stats.files);
 }
 
@@ -97,7 +103,12 @@ fn parse_failures_are_surfaced_as_warnings_and_statuses() {
     let statuses: BTreeMap<_, _> = report
         .nodes
         .iter()
-        .map(|n| (n.path.as_str(), serde_json::to_value(n.parse_status).unwrap()))
+        .map(|n| {
+            (
+                n.path.as_str(),
+                serde_json::to_value(n.parse_status).unwrap(),
+            )
+        })
         .collect();
     assert_eq!(statuses["src/broken.ts"], json!("partial"));
     assert_eq!(statuses["src/main.ts"], json!("ok"));
@@ -112,14 +123,24 @@ fn parse_failures_are_surfaced_as_warnings_and_statuses() {
 fn external_and_unresolved_imports_never_become_edges() {
     let (report, _) = analyze_fixture("edge-cases-project");
     for e in &report.edges {
-        assert!(report.nodes.iter().any(|n| n.path == e.to), "edge to non-node {}", e.to);
+        assert!(
+            report.nodes.iter().any(|n| n.path == e.to),
+            "edge to non-node {}",
+            e.to
+        );
     }
-    assert!(report.edges.iter().all(|e| e.specifier != "react" && e.specifier != "./missing"));
+    assert!(report
+        .edges
+        .iter()
+        .all(|e| e.specifier != "react" && e.specifier != "./missing"));
 }
 
 #[test]
 fn graph_is_deterministic_across_runs() {
     let (a, _) = analyze_fixture("edge-cases-project");
     let (b, _) = analyze_fixture("edge-cases-project");
-    assert_eq!(serde_json::to_string(&a).unwrap(), serde_json::to_string(&b).unwrap());
+    assert_eq!(
+        serde_json::to_string(&a).unwrap(),
+        serde_json::to_string(&b).unwrap()
+    );
 }

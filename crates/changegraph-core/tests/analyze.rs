@@ -127,7 +127,11 @@ fn excluded_changed_files_are_listed_but_flagged() {
         .expect("excluded file must still be listed");
     assert!(f.excluded);
     // ...and it is not part of discovery.
-    assert!(report.discovery.files.iter().all(|s| s.path != "dist/out.js"));
+    assert!(report
+        .discovery
+        .files
+        .iter()
+        .all(|s| s.path != "dist/out.js"));
 }
 
 #[test]

@@ -21,7 +21,10 @@ fn discovers_fixture_project_files_sorted_and_classified() {
             "tests/session.test.ts",
         ]
     );
-    let tests = files.iter().filter(|f| f.category == FileCategory::Test).count();
+    let tests = files
+        .iter()
+        .filter(|f| f.category == FileCategory::Test)
+        .count();
     assert_eq!(tests, 2);
 }
 

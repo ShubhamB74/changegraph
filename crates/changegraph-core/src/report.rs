@@ -121,7 +121,11 @@ fn short(sha: &str) -> &str {
 }
 
 fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
-    writeln!(w, "ChangeGraph {} (schema {})", r.tool.version, r.schema_version)?;
+    writeln!(
+        w,
+        "ChangeGraph {} (schema {})",
+        r.tool.version, r.schema_version
+    )?;
     writeln!(w, "Repository: {}", r.repository.root)?;
 
     let c = &r.comparison;
@@ -162,7 +166,12 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
                 old,
                 f.path
             )?,
-            None => writeln!(w, "  {}  {}  [{category}{excluded}]", f.status.letter(), f.path)?,
+            None => writeln!(
+                w,
+                "  {}  {}  [{category}{excluded}]",
+                f.status.letter(),
+                f.path
+            )?,
         }
     }
 
