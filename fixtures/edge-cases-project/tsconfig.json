@@ -1,0 +1,7 @@
+{
+  // Path aliases (JSONC: comments and trailing commas are allowed in tsconfig)
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@lib/*": ["src/lib/*"], },
+  },
+}

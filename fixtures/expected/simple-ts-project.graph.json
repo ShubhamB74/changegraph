@@ -1,0 +1,12 @@
+{
+  "edges": [
+    { "from": "src/api/profile.ts", "to": "src/auth/session.ts", "kind": "import", "type_only": false },
+    { "from": "src/index.ts", "to": "src/api/profile.ts", "kind": "re_export", "type_only": false },
+    { "from": "src/index.ts", "to": "src/auth/session.ts", "kind": "re_export_all", "type_only": false },
+    { "from": "tests/profile.test.ts", "to": "src/api/profile.ts", "kind": "import", "type_only": false },
+    { "from": "tests/session.test.ts", "to": "src/auth/session.ts", "kind": "import", "type_only": false }
+  ],
+  "external": [],
+  "unresolved": [],
+  "cycles": []
+}

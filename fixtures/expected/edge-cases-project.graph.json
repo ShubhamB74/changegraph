@@ -1,0 +1,27 @@
+{
+  "_comment": "Hand-labeled. Entries from src/broken.ts are excluded by the test because partial-parse recovery is grammar-dependent; only its parse_status is asserted.",
+  "edges": [
+    { "from": "src/cycle/a.ts", "to": "src/cycle/b.ts", "kind": "import", "type_only": false },
+    { "from": "src/cycle/b.ts", "to": "src/cycle/a.ts", "kind": "import", "type_only": false },
+    { "from": "src/lib/index.ts", "to": "src/lib/format.ts", "kind": "re_export", "type_only": false },
+    { "from": "src/lib/index.ts", "to": "src/lib/util.ts", "kind": "re_export", "type_only": false },
+    { "from": "src/main.ts", "to": "src/cycle/a.ts", "kind": "import", "type_only": false },
+    { "from": "src/main.ts", "to": "src/lib/format.ts", "kind": "import", "type_only": false },
+    { "from": "src/main.ts", "to": "src/lib/index.ts", "kind": "re_export_all", "type_only": false },
+    { "from": "src/main.ts", "to": "src/lib/util.ts", "kind": "import", "type_only": false },
+    { "from": "src/main.ts", "to": "src/lib/util.ts", "kind": "re_export", "type_only": false },
+    { "from": "src/main.ts", "to": "src/side-effect.ts", "kind": "import", "type_only": false },
+    { "from": "src/main.ts", "to": "src/types/index.ts", "kind": "import", "type_only": true },
+    { "from": "tests/main.test.ts", "to": "src/lib/util.ts", "kind": "import", "type_only": false }
+  ],
+  "external": [
+    { "from": "src/main.ts", "package": "react" },
+    { "from": "tests/main.test.ts", "package": "vitest" }
+  ],
+  "unresolved": [
+    { "from": "src/main.ts", "specifier": "./data.json", "reason": "unsupported_file_type" },
+    { "from": "src/main.ts", "specifier": "./missing", "reason": "not_found" }
+  ],
+  "cycles": [["src/cycle/a.ts", "src/cycle/b.ts"]],
+  "parse_status": { "src/broken.ts": "partial" }
+}
