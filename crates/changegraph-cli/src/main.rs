@@ -30,7 +30,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Detect changed files and discover sources in a Git repository.
+    /// Detect changed files, build the dependency graph, and compute change impact.
     ///
     /// With --base, compares committed changes on the target (default HEAD) against
     /// its merge base with BASE (like `git diff BASE...TARGET`). Uncommitted work is
@@ -74,6 +74,11 @@ struct AnalyzeArgs {
     /// coverage, .next, .turbo).
     #[arg(long)]
     no_default_excludes: bool,
+
+    /// Maximum dependent distance to follow when computing impact (default: unlimited).
+    /// If the limit cuts off further dependents, the report says so.
+    #[arg(long, value_name = "N")]
+    max_depth: Option<usize>,
 
     /// Write the report to FILE instead of stdout.
     #[arg(short, long, value_name = "FILE")]
@@ -123,6 +128,7 @@ fn run_analyze(args: &AnalyzeArgs) -> Result<(), ChangeGraphError> {
     config.target = args.target.clone();
     config.exclude = args.exclude.clone();
     config.use_default_excludes = !args.no_default_excludes;
+    config.max_depth = args.max_depth;
 
     let report = analyze(&config)?;
 

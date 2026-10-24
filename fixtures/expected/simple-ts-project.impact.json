@@ -1,0 +1,40 @@
+{
+  "scenarios": [
+    {
+      "name": "change the leaf module: direct, transitive, and via re-export",
+      "changed": ["src/auth/session.ts"],
+      "affected": [
+        { "path": "src/api/profile.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 },
+        { "path": "src/index.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 },
+        { "path": "tests/session.test.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 },
+        { "path": "tests/profile.test.ts", "classification": "transitive", "distance": 2, "changed_dependency_count": 1 }
+      ],
+      "uncertain": []
+    },
+    {
+      "name": "change a mid-level module: unrelated modules stay unaffected",
+      "changed": ["src/api/profile.ts"],
+      "affected": [
+        { "path": "src/index.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 },
+        { "path": "tests/profile.test.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 }
+      ],
+      "uncertain": []
+    },
+    {
+      "name": "change a test file: nothing imports it",
+      "changed": ["tests/session.test.ts"],
+      "affected": [],
+      "uncertain": []
+    },
+    {
+      "name": "two changes: dedup and ranking (profile.test.ts depends on profile.ts directly and on session.ts through it, so count is 2)",
+      "changed": ["src/auth/session.ts", "src/api/profile.ts"],
+      "affected": [
+        { "path": "src/index.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 2 },
+        { "path": "tests/profile.test.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 2 },
+        { "path": "tests/session.test.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 }
+      ],
+      "uncertain": []
+    }
+  ]
+}

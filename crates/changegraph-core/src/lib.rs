@@ -1,17 +1,22 @@
 //! ChangeGraph analysis engine.
 //!
-//! Phase 1 implements repository validation, Git change detection, and source-file
-//! discovery. Later phases add `parser`, `symbols`, `dependency_graph`, `impact`, and
-//! `test_mapping` modules (see `docs/architecture.md`).
+//! Phases 1-2 implement repository validation, Git change detection, source discovery,
+//! Tree-sitter import/export extraction, module resolution, the dependency graph, and
+//! (Phase 3) change-impact analysis. Phase 4 adds `test_mapping` (see `docs/architecture.md`).
 //!
 //! The engine has no dependency on the CLI or any frontend.
 
 pub mod config;
+pub mod dependency_graph;
 pub mod discovery;
 pub mod error;
 pub mod git_diff;
+pub mod impact;
+pub mod parser;
 pub mod report;
 pub mod repository;
+pub mod resolver;
+pub mod tsconfig;
 
 mod git;
 
@@ -28,7 +33,7 @@ use report::{
 };
 use repository::Repository;
 
-/// Run the Phase 1 analysis and produce a [`Report`].
+/// Run the analysis (Phases 1-3) and produce a [`Report`].
 pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
     let started = Instant::now();
     config.validate()?;
@@ -42,7 +47,8 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
             let target_name = config.target.clone().unwrap_or_else(|| "HEAD".to_string());
             let base_commit = repo.resolve_revision(base)?;
             let target_commit = repo.resolve_revision(&target_name)?;
-            let merge_base = repo.merge_base(base, &target_name, &base_commit, &target_commit)?;
+            let merge_base =
+                repo.merge_base(base, &target_name, &base_commit, &target_commit)?;
             let changes = git_diff::diff_commits(&repo, &merge_base, &target_commit)?;
 
             if repo.has_uncommitted_changes()? {
@@ -51,6 +57,21 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
                     message: "the working tree has uncommitted changes; they are NOT included \
                               in this merge-base comparison"
                         .to_string(),
+                });
+            }
+
+            // The dependency graph is built from the files on disk. If the target is not the
+            // checked-out commit, the graph does not describe the target revision.
+            if target_commit != repo.head() {
+                warnings.push(Warning {
+                    code: WarningCode::GraphTargetMismatch,
+                    message: format!(
+                        "the dependency graph is built from the checked-out working tree (HEAD {}), \
+                         not from target `{}` ({}); impact results may not match the target revision",
+                        &repo.head()[..repo.head().len().min(7)],
+                        target_name,
+                        &target_commit[..target_commit.len().min(7)]
+                    ),
                 });
             }
 
@@ -84,9 +105,21 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
 
     let (files, walk_warnings) = discovery::discover_sources(repo.root(), &excludes);
     warnings.extend(walk_warnings);
+
+    let (tsconfig, tsconfig_warnings) = tsconfig::load(repo.root());
+    warnings.extend(tsconfig_warnings);
+
+    let (graph, graph_warnings) =
+        dependency_graph::build_graph(repo.root(), &files, tsconfig.as_ref());
+    warnings.extend(graph_warnings);
+
+    let (impact, impact_warnings) =
+        impact::analyze_impact(&graph, &changed_files, tsconfig.as_ref(), config.max_depth);
+    warnings.extend(impact_warnings);
     tracing::debug!(
         changed = changed_files.len(),
         discovered = files.len(),
+        nodes = graph.len(),
         "analysis complete"
     );
 
@@ -102,7 +135,9 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
         },
         comparison,
         changed_files,
-        discovery: DiscoveryInfo::new(files, excludes.patterns().to_vec()),
+        discovery: DiscoveryInfo::new(&files, excludes.patterns().to_vec()),
+        graph: graph.into_report(),
+        impact,
         warnings,
         execution: ExecutionInfo {
             duration_ms: started.elapsed().as_millis() as u64,

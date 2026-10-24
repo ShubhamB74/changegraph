@@ -127,11 +127,7 @@ fn excluded_changed_files_are_listed_but_flagged() {
         .expect("excluded file must still be listed");
     assert!(f.excluded);
     // ...and it is not part of discovery.
-    assert!(report
-        .discovery
-        .files
-        .iter()
-        .all(|s| s.path != "dist/out.js"));
+    assert!(report.graph.nodes.iter().all(|n| n.path != "dist/out.js"));
 }
 
 #[test]
@@ -216,4 +212,61 @@ fn reports_are_deterministic_except_for_duration() {
         serde_json::to_string(&first).unwrap(),
         serde_json::to_string(&second).unwrap()
     );
+}
+
+#[test]
+fn warns_when_graph_is_not_built_from_the_target_revision() {
+    let repo = TestRepo::new();
+    repo.write("a.ts", "export const a = 1;\n");
+    repo.commit_all("init");
+    repo.git(&["checkout", "-q", "-b", "feature"]);
+    repo.write("a.ts", "export const a = 2;\n");
+    repo.commit_all("feature change");
+    repo.git(&["checkout", "-q", "main"]); // working tree is NOT the target
+
+    let mut cfg = AnalysisConfig::new(repo.path());
+    cfg.base = Some("main".to_string());
+    cfg.target = Some("feature".to_string());
+    let report = analyze(&cfg).unwrap();
+
+    assert_eq!(changes(&report), vec![("a.ts", ChangeStatus::Modified)]);
+    assert!(report
+        .warnings
+        .iter()
+        .any(|w| w.code == WarningCode::GraphTargetMismatch));
+}
+
+#[test]
+fn impact_section_is_populated_from_real_git_changes() {
+    let repo = TestRepo::new();
+    repo.write("src/a.ts", "export const a = 1;\n");
+    repo.write("src/b.ts", "import { a } from './a';\nexport const b = a;\n");
+    repo.write("src/b.test.ts", "import { b } from './b';\n");
+    repo.commit_all("init");
+    repo.write("src/a.ts", "export const a = 2;\n");
+
+    let report = analyze(&AnalysisConfig::new(repo.path())).unwrap();
+    let affected: Vec<_> = report
+        .impact
+        .affected
+        .iter()
+        .map(|a| (a.path.as_str(), a.distance))
+        .collect();
+    assert_eq!(affected, vec![("src/b.ts", 1), ("src/b.test.ts", 2)]);
+    assert_eq!(report.impact.summary.affected_tests, 1);
+}
+
+#[test]
+fn deleting_an_imported_file_flags_its_importers() {
+    let repo = TestRepo::new();
+    repo.write("src/a.ts", "export const a = 1;\n");
+    repo.write("src/b.ts", "import { a } from './a';\nexport const b = a;\n");
+    repo.commit_all("init");
+    repo.remove("src/a.ts");
+
+    let report = analyze(&AnalysisConfig::new(repo.path())).unwrap();
+    assert_eq!(changes(&report), vec![("src/a.ts", ChangeStatus::Deleted)]);
+    assert_eq!(report.impact.affected.len(), 1);
+    assert_eq!(report.impact.affected[0].path, "src/b.ts");
+    assert!(report.impact.affected[0].explanation.contains("deleted file src/a.ts"));
 }

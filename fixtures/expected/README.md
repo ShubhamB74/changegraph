@@ -1,16 +1,20 @@
 # Expected outputs
 
-Hand-labeled expected results for fixtures live here, starting in Phase 2
-(expected dependency edges per fixture) and used by the evaluation harness in Phase 7.
+Hand-labeled expectations used by `crates/changegraph-core/tests/graph.rs` (and, in Phase 7,
+the evaluation harness). `A -> B` means A imports B.
 
-For `simple-ts-project`, the intended dependency edges (`A -> B` = A imports B) are:
+| File | Fixture | Covers |
+|------|---------|--------|
+| `simple-ts-project.graph.json` | `fixtures/simple-ts-project` | imports, re-exports, tests importing sources |
+| `edge-cases-project.graph.json` | `fixtures/edge-cases-project` | `.js`→`.ts` mapping, directory `index`, tsconfig alias (JSONC), type-only import, side-effect import, `export *`, external packages, unresolved (`not_found`, `unsupported_file_type`), an import cycle, a syntax error (`partial`) |
 
-```
-src/api/profile.ts    -> src/auth/session.ts
-src/index.ts          -> src/api/profile.ts   (re-export)
-src/index.ts          -> src/auth/session.ts  (re-export)
-tests/profile.test.ts -> src/api/profile.ts
-tests/session.test.ts -> src/auth/session.ts
-```
+These are labels written by hand from reading the fixture sources, not output copied from the tool.
+`src/broken.ts` is excluded from edge comparison because error recovery is grammar-dependent;
+only its `partial` status is asserted.
 
-These are *labels for future tests*; Phase 1 does not extract edges yet.
+## Impact scenarios
+
+`*.impact.json` files contain hand-labeled scenarios for Phase 3: a list of changed files and the
+expected `affected` list **in ranked order** (`path`, `classification`, `distance`,
+`changed_dependency_count`), optionally `uncertain` (exact) or `*_includes` (subset) checks.
+Ranking: distance asc, changed_dependency_count desc, path asc.

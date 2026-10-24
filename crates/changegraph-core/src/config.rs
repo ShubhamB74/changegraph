@@ -30,6 +30,8 @@ pub struct AnalysisConfig {
     pub exclude: Vec<String>,
     /// Apply the built-in exclusion list (`node_modules`, `.git`, `dist`, ...).
     pub use_default_excludes: bool,
+    /// Maximum dependent distance to follow during impact analysis (`None` = unlimited).
+    pub max_depth: Option<usize>,
 }
 
 impl AnalysisConfig {
@@ -40,6 +42,7 @@ impl AnalysisConfig {
             target: None,
             exclude: Vec::new(),
             use_default_excludes: true,
+            max_depth: None,
         }
     }
 

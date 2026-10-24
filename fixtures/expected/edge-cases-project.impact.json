@@ -1,0 +1,19 @@
+{
+  "scenarios": [
+    {
+      "name": "cycle: the changed file is never reported as its own dependent",
+      "changed": ["src/cycle/a.ts"],
+      "affected": [
+        { "path": "src/cycle/b.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 },
+        { "path": "src/main.ts", "classification": "direct", "distance": 1, "changed_dependency_count": 1 }
+      ],
+      "uncertain": ["src/broken.ts"]
+    },
+    {
+      "name": "re-exports and tests (src/broken.ts is excluded from exact comparison: error recovery is grammar-dependent)",
+      "changed": ["src/lib/util.ts"],
+      "affected_includes": ["src/lib/index.ts", "src/main.ts", "tests/main.test.ts"],
+      "uncertain_includes_or_affected": ["src/broken.ts"]
+    }
+  ]
+}
