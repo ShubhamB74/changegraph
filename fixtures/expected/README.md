@@ -18,3 +18,10 @@ only its `partial` status is asserted.
 expected `affected` list **in ranked order** (`path`, `classification`, `distance`,
 `changed_dependency_count`), optionally `uncertain` (exact) or `*_includes` (subset) checks.
 Ranking: distance asc, changed_dependency_count desc, path asc.
+
+## Test-recommendation scenarios
+
+`*.tests.json` hold hand-labeled Phase 4 scenarios: changed files and the expected ranked
+`recommendations` (`path`, `basis`, `methods`, `min_distance`), `unmapped` modules, `complete`, and
+the `incomplete_kinds` in order. `simple-ts-project.coverage-map.json` is a sample coverage map
+(it deliberately includes a test path that does not exist, to exercise the warning).

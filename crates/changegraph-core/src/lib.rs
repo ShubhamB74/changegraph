@@ -2,7 +2,7 @@
 //!
 //! Phases 1-2 implement repository validation, Git change detection, source discovery,
 //! Tree-sitter import/export extraction, module resolution, the dependency graph, and
-//! (Phase 3) change-impact analysis. Phase 4 adds `test_mapping` (see `docs/architecture.md`).
+//! (Phase 3) change-impact analysis, and (Phase 4) explainable test recommendation.
 //!
 //! The engine has no dependency on the CLI or any frontend.
 
@@ -16,6 +16,7 @@ pub mod parser;
 pub mod report;
 pub mod repository;
 pub mod resolver;
+pub mod test_mapping;
 pub mod tsconfig;
 
 mod git;
@@ -33,10 +34,15 @@ use report::{
 };
 use repository::Repository;
 
-/// Run the analysis (Phases 1-3) and produce a [`Report`].
+/// Run the analysis (Phases 1-4) and produce a [`Report`].
 pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
     let started = Instant::now();
     config.validate()?;
+    // Load explicit inputs first so a bad flag fails fast, before any heavy work.
+    let coverage = match &config.coverage_map {
+        Some(path) => Some(test_mapping::load_coverage_map(path)?),
+        None => None,
+    };
 
     let repo = Repository::open(&config.repo_path)?;
     let excludes = ExcludeSet::new(&config.exclude, config.use_default_excludes);
@@ -47,7 +53,8 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
             let target_name = config.target.clone().unwrap_or_else(|| "HEAD".to_string());
             let base_commit = repo.resolve_revision(base)?;
             let target_commit = repo.resolve_revision(&target_name)?;
-            let merge_base = repo.merge_base(base, &target_name, &base_commit, &target_commit)?;
+            let merge_base =
+                repo.merge_base(base, &target_name, &base_commit, &target_commit)?;
             let changes = git_diff::diff_commits(&repo, &merge_base, &target_commit)?;
 
             if repo.has_uncommitted_changes()? {
@@ -115,6 +122,17 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
     let (impact, impact_warnings) =
         impact::analyze_impact(&graph, &changed_files, tsconfig.as_ref(), config.max_depth);
     warnings.extend(impact_warnings);
+
+    let graph_target_mismatch = warnings
+        .iter()
+        .any(|w| w.code == WarningCode::GraphTargetMismatch);
+    let (test_recommendations, test_warnings) = test_mapping::recommend_tests(&test_mapping::TestInput {
+        graph: &graph,
+        impact: &impact,
+        coverage: coverage.as_ref(),
+        graph_target_mismatch,
+    });
+    warnings.extend(test_warnings);
     tracing::debug!(
         changed = changed_files.len(),
         discovered = files.len(),
@@ -137,9 +155,12 @@ pub fn analyze(config: &AnalysisConfig) -> Result<Report> {
         discovery: DiscoveryInfo::new(&files, excludes.patterns().to_vec()),
         graph: graph.into_report(),
         impact,
+        test_recommendations,
         warnings,
         execution: ExecutionInfo {
-            duration_ms: started.elapsed().as_millis() as u64,
+            duration_ms: config
+                .record_timing
+                .then(|| started.elapsed().as_millis() as u64),
         },
     })
 }

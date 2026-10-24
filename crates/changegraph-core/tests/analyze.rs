@@ -70,7 +70,12 @@ fn merge_base_mode_excludes_changes_made_only_on_base() {
     assert!(report.comparison.merge_base_commit.is_some());
     // Only the feature branch's own change; `b.ts` changed on main after the fork.
     assert_eq!(changes(&report), vec![("a.ts", ChangeStatus::Modified)]);
-    assert!(report.warnings.is_empty());
+    // No dirty-tree or graph/target warnings. (The repo has no tests, so the only expected
+    // warning is the honest "test selection is incomplete".)
+    assert!(report
+        .warnings
+        .iter()
+        .all(|w| w.code == WarningCode::TestSelectionIncomplete));
 }
 
 #[test]
@@ -206,8 +211,8 @@ fn reports_are_deterministic_except_for_duration() {
     let cfg = AnalysisConfig::new(repo.path());
     let mut first = analyze(&cfg).unwrap();
     let mut second = analyze(&cfg).unwrap();
-    first.execution.duration_ms = 0;
-    second.execution.duration_ms = 0;
+    first.execution.duration_ms = None;
+    second.execution.duration_ms = None;
     assert_eq!(
         serde_json::to_string(&first).unwrap(),
         serde_json::to_string(&second).unwrap()
@@ -240,10 +245,7 @@ fn warns_when_graph_is_not_built_from_the_target_revision() {
 fn impact_section_is_populated_from_real_git_changes() {
     let repo = TestRepo::new();
     repo.write("src/a.ts", "export const a = 1;\n");
-    repo.write(
-        "src/b.ts",
-        "import { a } from './a';\nexport const b = a;\n",
-    );
+    repo.write("src/b.ts", "import { a } from './a';\nexport const b = a;\n");
     repo.write("src/b.test.ts", "import { b } from './b';\n");
     repo.commit_all("init");
     repo.write("src/a.ts", "export const a = 2;\n");
@@ -263,10 +265,7 @@ fn impact_section_is_populated_from_real_git_changes() {
 fn deleting_an_imported_file_flags_its_importers() {
     let repo = TestRepo::new();
     repo.write("src/a.ts", "export const a = 1;\n");
-    repo.write(
-        "src/b.ts",
-        "import { a } from './a';\nexport const b = a;\n",
-    );
+    repo.write("src/b.ts", "import { a } from './a';\nexport const b = a;\n");
     repo.commit_all("init");
     repo.remove("src/a.ts");
 
@@ -274,7 +273,63 @@ fn deleting_an_imported_file_flags_its_importers() {
     assert_eq!(changes(&report), vec![("src/a.ts", ChangeStatus::Deleted)]);
     assert_eq!(report.impact.affected.len(), 1);
     assert_eq!(report.impact.affected[0].path, "src/b.ts");
-    assert!(report.impact.affected[0]
-        .explanation
-        .contains("deleted file src/a.ts"));
+    assert!(report.impact.affected[0].explanation.contains("deleted file src/a.ts"));
+}
+
+#[test]
+fn test_recommendations_and_coverage_map_flow_through_analyze() {
+    let repo = TestRepo::new();
+    repo.write("src/a.ts", "export const a = 1;\n");
+    repo.write("src/a.test.ts", "import { a } from './a';\n");
+    repo.write("src/slow.test.ts", "test('slow', () => {});\n");
+    repo.commit_all("init");
+    repo.write("src/a.ts", "export const a = 2;\n");
+
+    let dir = tempfile::TempDir::new().unwrap();
+    let map = dir.path().join("map.json");
+    std::fs::write(&map, r#"{"version":1,"tests":{"src/slow.test.ts":["src/a.ts"]}}"#).unwrap();
+
+    let mut cfg = AnalysisConfig::new(repo.path());
+    cfg.coverage_map = Some(map);
+    let report = analyze(&cfg).unwrap();
+    let recs: Vec<_> = report
+        .test_recommendations
+        .recommendations
+        .iter()
+        .map(|r| r.path.as_str())
+        .collect();
+    assert_eq!(recs, vec!["src/a.test.ts", "src/slow.test.ts"]);
+    assert!(report.test_recommendations.completeness.complete);
+}
+
+#[test]
+fn bad_coverage_map_fails_fast_with_actionable_errors() {
+    let repo = TestRepo::new();
+    repo.write("src/a.ts", "export const a = 1;\n");
+    repo.commit_all("init");
+    let dir = tempfile::TempDir::new().unwrap();
+
+    let mut cfg = AnalysisConfig::new(repo.path());
+    cfg.coverage_map = Some(dir.path().join("missing.json"));
+    let err = analyze(&cfg).unwrap_err();
+    assert!(matches!(err, ChangeGraphError::PathNotFound(_)));
+
+    let bad = dir.path().join("bad.json");
+    std::fs::write(&bad, "{\"version\": 3}").unwrap();
+    cfg.coverage_map = Some(bad);
+    let err = analyze(&cfg).unwrap_err();
+    assert!(matches!(err, ChangeGraphError::InvalidCoverageMap { .. }));
+    assert_eq!(err.exit_code(), 2);
+    assert!(err.hint().is_some());
+}
+
+#[test]
+fn timing_can_be_disabled() {
+    let repo = TestRepo::new();
+    repo.write("src/a.ts", "export const a = 1;\n");
+    repo.commit_all("init");
+    let mut cfg = AnalysisConfig::new(repo.path());
+    assert!(analyze(&cfg).unwrap().execution.duration_ms.is_some());
+    cfg.record_timing = false;
+    assert!(analyze(&cfg).unwrap().execution.duration_ms.is_none());
 }

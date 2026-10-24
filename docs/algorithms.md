@@ -106,7 +106,53 @@ unresolved imports; it is not computed when nothing changed.
 if the target is not the checked-out commit, `graph_target_mismatch` is raised: the changed-file
 list describes the target, but the graph describes the working tree.
 
-## Planned (Phase 4)
+## Test recommendation (Phase 4)
+
+**Methods.** `changed_test` (the test file changed); `direct_import` (the test imports a
+changed/affected module — a confirmed edge); `dependency_reachability` (it reaches one through
+confirmed imports); `coverage_map` (optional user-supplied per-test coverage); `filename_heuristic`
+(fallback, below). The first four are *known*; a recommendation backed only by
+`filename_heuristic` has `basis: heuristic` and is labelled as a guess everywhere it appears.
+
+**Covered modules.** The impacted modules are the changed source files, the affected source files
+and removed paths. For every changed or affected test, a forward BFS over imports finds which
+impacted modules it reaches (distance and first hop recorded). Removed paths are not graph
+nodes, so their distances come from the impact analysis.
+
+**Heuristic fallback.** Only for impacted source modules with *no* known test. A test matches if
+its base name equals the module's (ignoring `.test`/`.spec`/`.d`) and it is in the same directory,
+a sibling `__tests__/`, or a mirrored directory (`src/x/a.ts` ↔ `tests/x/a.test.ts`, roots
+`src|lib|app` ↔ `test|tests|__tests__|spec`). Heuristic matches are listed on the unmapped module
+and never count as coverage.
+
+**Ordering.** known before heuristic; then tier (changed test; graph-confirmed by distance to the
+nearest *changed* module; coverage-map-only; heuristic-only); then more known covered modules; then
+path.
+
+**Completeness.** `completeness.complete` is false when any of: impacted modules lack a known test;
+`--max-depth` truncated traversal; unaffected files have unresolved imports/partial parses;
+changed source files were excluded or not in the graph; `package.json`/lockfile/tsconfig changed;
+the graph does not match the target revision; or a real change produced no recommendation.
+Changes confined to non-source files (docs, assets) do not trigger incompleteness by themselves.
+
+**What this does not claim.** Reachability is file-level and over-approximate; a listed test may
+not exercise the change, and an unlisted test may be affected through a dependency the graph cannot
+see. Safe test *omission* is not claimed anywhere; measuring it is Phase 7.
+
+## Output and exit behaviour (Phase 5)
+
+- **Determinism.** Identical repository state, options and tool version give identical reports
+  except `execution.duration_ms` (and `repository.root`, an absolute path). `--no-timing` sets the
+  duration to `null`, making output byte-identical (tested). All collections are sorted or
+  built in a deterministic order; hash maps are used only for lookups.
+- **Memory.** The report is built once and serialized directly into the destination
+  (`serde_json::to_writer[_pretty]` into a buffered writer); no intermediate `String` copy.
+  `--compact` drops whitespace for large reports.
+- **Files.** `--output` writes a temporary file beside the destination and renames it, so failures
+  never leave a truncated or partial report, and nothing is created if the analysis fails.
+- **CI gating.** `--fail-on warnings|incomplete-tests` exits 6 *after* the report is written.
+
+## Planned (Phase 6+)
 
 - Edge semantics: `A -> B` means A imports B. Impact = reverse reachability from changed nodes,
   cycle-safe BFS with a visited set, shortest-path predecessor map for explanations.

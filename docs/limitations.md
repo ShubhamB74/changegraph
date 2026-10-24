@@ -2,7 +2,18 @@
 
 **Current (Phase 1)**
 
-- Test recommendations do not exist yet (Phase 4); `affected` simply includes affected test files.
+- **Test recommendations are not validated empirically yet** (Phase 7). The ranking and the
+  reachability relation are unmeasured heuristics; do not use the list to *skip* tests.
+- Test files are recognised by name only (`*.test.*`, `*.spec.*`, `__tests__/`); a test with
+  another name is treated as ordinary source.
+- Tests that depend on changed non-source files (fixtures, snapshots, JSON data, environment) or on
+  runtime behaviour that is not an import are invisible to the graph.
+- The coverage map is trusted as given. It is not checked against the revision, and a map recorded
+  before the change cannot reflect new execution paths introduced by it.
+- The filename heuristic only knows the conventions in `docs/algorithms.md`; other layouts yield no
+  guess (and the module is reported as unmapped, which is the safe outcome).
+- `--fail-on incomplete-tests` can be noisy in repositories where many modules have no unit test;
+  that is accurate, not a bug.
 - **Impact is file-level.** Changing one function marks every importer of the file as affected,
   whether or not it uses that function. Expect over-approximation (extra files), not precision.
 - **Impact only follows static imports.** Dependencies via dynamic `import()`, `require()`, DI

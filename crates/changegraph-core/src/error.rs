@@ -45,6 +45,9 @@ pub enum ChangeGraphError {
     #[error("invalid configuration: {0}")]
     InvalidConfig(String),
 
+    #[error("invalid coverage map {}: {message}", .path.display())]
+    InvalidCoverageMap { path: PathBuf, message: String },
+
     #[error("I/O error on {}: {source}", .path.display())]
     Io {
         path: PathBuf,
@@ -69,11 +72,12 @@ impl ChangeGraphError {
     /// | 3    | path or repository problem                       |
     /// | 4    | revision problem (unknown, invalid, no merge base) |
     /// | 5    | `git` missing or a git command failed            |
+    /// | 6    | (CLI only) analysis succeeded but a `--fail-on` condition was met |
     pub fn exit_code(&self) -> u8 {
         use ChangeGraphError::*;
         match self {
             Io { .. } | Output(_) | Serialize(_) => 1,
-            InvalidConfig(_) => 2,
+            InvalidConfig(_) | InvalidCoverageMap { .. } => 2,
             PathNotFound(_) | NotADirectory(_) | NotAGitRepository(_) => 3,
             RevisionNotFound { .. } | InvalidRevision { .. } | NoMergeBase { .. } => 4,
             GitUnavailable(_) | GitCommandFailed { .. } | GitOutputParse(_) => 5,
@@ -86,18 +90,20 @@ impl ChangeGraphError {
         match self {
             PathNotFound(_) => Some("check the path you passed to `analyze`"),
             NotADirectory(_) => Some("pass the repository directory, not a file"),
-            NotAGitRepository(_) => {
-                Some("run inside a Git working tree (`git init` or `git clone`)")
-            }
+            NotAGitRepository(_) => Some("run inside a Git working tree (`git init` or `git clone`)"),
             GitUnavailable(_) => Some("install Git and make sure `git` is on your PATH"),
             RevisionNotFound { .. } => Some(
                 "check spelling with `git rev-parse --verify <rev>`; \
                  in a repo with no commits, create one first; \
                  in CI, make sure the base branch was fetched (e.g. `fetch-depth: 0`)",
             ),
-            NoMergeBase { .. } => {
-                Some("the histories are unrelated or the checkout is shallow; fetch full history")
-            }
+            InvalidCoverageMap { .. } => Some(
+                "expected {\"version\": 1, \"tests\": {\"<test path>\": [\"<source path>\", ...]}} \
+                 with repository-relative paths",
+            ),
+            NoMergeBase { .. } => Some(
+                "the histories are unrelated or the checkout is shallow; fetch full history",
+            ),
             _ => None,
         }
     }

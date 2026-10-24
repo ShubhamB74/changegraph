@@ -32,6 +32,10 @@ pub struct AnalysisConfig {
     pub use_default_excludes: bool,
     /// Maximum dependent distance to follow during impact analysis (`None` = unlimited).
     pub max_depth: Option<usize>,
+    /// Optional per-test coverage map (see `test_mapping::CoverageMap`).
+    pub coverage_map: Option<PathBuf>,
+    /// Record wall-clock time in the report. Disable for byte-identical reports.
+    pub record_timing: bool,
 }
 
 impl AnalysisConfig {
@@ -43,6 +47,8 @@ impl AnalysisConfig {
             exclude: Vec::new(),
             use_default_excludes: true,
             max_depth: None,
+            coverage_map: None,
+            record_timing: true,
         }
     }
 

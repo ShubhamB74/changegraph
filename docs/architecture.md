@@ -51,7 +51,15 @@ weighted or symbol-level algorithms.
 graph (before it is converted into the report) and returns an `ImpactReport` plus warnings. It uses
 only the graph's public adjacency (`dependents`, `edge_between`, `unresolved_imports`).
 
-**Planned modules** (not present yet, deliberately): `test_mapping`. A separate
+**Test selection (Phase 4):** `test_mapping::recommend_tests` takes the graph, the impact report and an
+optional `CoverageMap`, and returns a `TestReport` plus warnings. It never mutates the graph or
+impact data; heuristics are applied only after known relationships, and only for unmapped modules.
+
+**CLI (Phase 5):** the binary is a thin layer: parse flags -> `AnalysisConfig` -> `analyze` -> stream the
+report to stdout or (atomically) to a file -> map `--fail-on` to exit code 6. All analysis stays in the
+core crate.
+
+**Planned modules** (not present yet, deliberately): none until Phase 7's evaluation harness. A separate
 `symbols` module was folded into `parser` (local export names) until symbol-level analysis is needed.
 
 **Why Rust:** deterministic, fast whole-repo parsing and graph traversal in a single static

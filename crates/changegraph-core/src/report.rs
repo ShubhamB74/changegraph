@@ -1,11 +1,12 @@
 //! Versioned report schema and writers.
 //!
 //! The JSON schema is documented in `docs/report-schema.md` and
-//! `docs/schema/report-0.3.0.schema.json`. While the major version is 0 the schema may
+//! `docs/schema/report-0.4.0.schema.json`. While the major version is 0 the schema may
 //! change between releases; `schema_version` always reflects the emitted shape.
 //!
 //! Determinism: for identical repository state and configuration every field is
-//! identical **except** `execution.duration_ms` (wall-clock time).
+//! identical **except** `execution.duration_ms` (wall-clock time), which is `null` when timing
+//! is disabled (`--no-timing`), making the whole report byte-identical.
 
 use std::io::Write;
 
@@ -17,8 +18,9 @@ use crate::discovery::{FileCategory, SourceFile};
 use crate::error::{ChangeGraphError, Result};
 use crate::git_diff::ChangedFile;
 use crate::impact::ImpactReport;
+use crate::test_mapping::TestReport;
 
-pub const SCHEMA_VERSION: &str = "0.3.0";
+pub const SCHEMA_VERSION: &str = "0.4.0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -44,6 +46,10 @@ pub enum WarningCode {
     /// A changed configuration/dependency file may affect many files in ways the graph
     /// does not model.
     UnmodeledConfigChange,
+    /// The recommended test list may be missing tests that should run.
+    TestSelectionIncomplete,
+    /// The optional coverage map referenced tests that are not analyzed files.
+    CoverageMapIssue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,8 +95,8 @@ pub struct DiscoveryInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionInfo {
-    /// Wall-clock time. The only non-deterministic field in the report.
-    pub duration_ms: u64,
+    /// Wall-clock time; the only non-deterministic field. `None` when timing is disabled.
+    pub duration_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,6 +109,7 @@ pub struct Report {
     pub discovery: DiscoveryInfo,
     pub graph: GraphReport,
     pub impact: ImpactReport,
+    pub test_recommendations: TestReport,
     pub warnings: Vec<Warning>,
     pub execution: ExecutionInfo,
 }
@@ -123,8 +130,18 @@ impl DiscoveryInfo {
 }
 
 /// Stream the report as pretty JSON without building an intermediate `String`.
-pub fn write_json<W: Write>(report: &Report, mut writer: W) -> Result<()> {
-    serde_json::to_writer_pretty(&mut writer, report)?;
+pub fn write_json<W: Write>(report: &Report, writer: W) -> Result<()> {
+    write_json_with(report, writer, true)
+}
+
+/// Stream the report as JSON (`pretty = false` omits whitespace, which shrinks large reports).
+/// The report is serialized directly into `writer`; no intermediate copy is built.
+pub fn write_json_with<W: Write>(report: &Report, mut writer: W, pretty: bool) -> Result<()> {
+    if pretty {
+        serde_json::to_writer_pretty(&mut writer, report)?;
+    } else {
+        serde_json::to_writer(&mut writer, report)?;
+    }
     writer.write_all(b"\n").map_err(ChangeGraphError::Output)?;
     writer.flush().map_err(ChangeGraphError::Output)
 }
@@ -139,11 +156,7 @@ fn short(sha: &str) -> &str {
 }
 
 fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
-    writeln!(
-        w,
-        "ChangeGraph {} (schema {})",
-        r.tool.version, r.schema_version
-    )?;
+    writeln!(w, "ChangeGraph {} (schema {})", r.tool.version, r.schema_version)?;
     writeln!(w, "Repository: {}", r.repository.root)?;
 
     let c = &r.comparison;
@@ -184,12 +197,7 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
                 old,
                 f.path
             )?,
-            None => writeln!(
-                w,
-                "  {}  {}  [{category}{excluded}]",
-                f.status.letter(),
-                f.path
-            )?,
+            None => writeln!(w, "  {}  {}  [{category}{excluded}]", f.status.letter(), f.path)?,
         }
     }
 
@@ -203,11 +211,7 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     let g = &r.graph;
     let st = &g.stats;
     writeln!(w)?;
-    writeln!(
-        w,
-        "Dependency graph ({}):",
-        crate::dependency_graph::EDGE_SEMANTICS
-    )?;
+    writeln!(w, "Dependency graph ({}):", crate::dependency_graph::EDGE_SEMANTICS)?;
     writeln!(
         w,
         "  {} files, {} internal edges, {} external imports, {} unresolved imports",
@@ -233,11 +237,7 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     if !g.unresolved_imports.is_empty() {
         writeln!(w, "  unresolved imports (not treated as dependencies):")?;
         for u in g.unresolved_imports.iter().take(MAX_UNRESOLVED_SHOWN) {
-            writeln!(
-                w,
-                "    {}:{}  \"{}\"  [{:?}]",
-                u.from, u.line, u.specifier, u.reason
-            )?;
+            writeln!(w, "    {}:{}  \"{}\"  [{:?}]", u.from, u.line, u.specifier, u.reason)?;
         }
         if g.unresolved_imports.len() > MAX_UNRESOLVED_SHOWN {
             writeln!(
@@ -249,6 +249,7 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     }
 
     render_impact(r, w)?;
+    render_tests(r, w)?;
 
     if !r.warnings.is_empty() {
         writeln!(w)?;
@@ -259,11 +260,10 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     }
 
     writeln!(w)?;
-    writeln!(
-        w,
-        "Note: test recommendations are not implemented yet (Phase 4)."
-    )?;
-    writeln!(w, "Completed in {} ms", r.execution.duration_ms)
+    match r.execution.duration_ms {
+        Some(ms) => writeln!(w, "Completed in {ms} ms"),
+        None => Ok(()),
+    }
 }
 
 fn render_impact<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
@@ -271,11 +271,7 @@ fn render_impact<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     let im = &r.impact;
     let s = &im.summary;
     writeln!(w)?;
-    writeln!(
-        w,
-        "Impact (reverse dependency traversal; ordering: {}):",
-        im.ordering
-    )?;
+    writeln!(w, "Impact (reverse dependency traversal; ordering: {}):", im.ordering)?;
     if s.changed_files == 0 {
         writeln!(w, "  no analyzable changed files")?;
     } else {
@@ -286,11 +282,7 @@ fn render_impact<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
         )?;
     }
     if let Some(depth) = im.max_depth {
-        let note = if im.depth_limited {
-            " -- TRUNCATED, more dependents exist"
-        } else {
-            ""
-        };
+        let note = if im.depth_limited { " -- TRUNCATED, more dependents exist" } else { "" };
         writeln!(w, "  depth limit: {depth}{note}")?;
     }
     for item in im.affected.iter().take(MAX_SHOWN) {
@@ -334,6 +326,69 @@ fn render_impact<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
             "  changed files not analyzed ({}): non-source, excluded, or not in the graph",
             im.ignored_changed_files.len()
         )?;
+    }
+    Ok(())
+}
+
+fn render_tests<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
+    use crate::test_mapping::Basis;
+    const MAX_SHOWN: usize = 25;
+    let t = &r.test_recommendations;
+    let s = &t.summary;
+    writeln!(w)?;
+    writeln!(
+        w,
+        "Recommended tests ({} of {} test files; {} on a known basis, {} heuristic only):",
+        s.recommended, s.total_test_files, s.known_basis, s.heuristic_only
+    )?;
+    if let Some(cm) = &t.coverage_map {
+        writeln!(w, "  coverage map: {} ({} tests)", cm.path, cm.tests)?;
+    }
+    if t.recommendations.is_empty() {
+        writeln!(w, "  (none identified)")?;
+    }
+    for rec in t.recommendations.iter().take(MAX_SHOWN) {
+        let basis = match rec.basis {
+            Basis::Known => "known",
+            Basis::Heuristic => "HEURISTIC",
+        };
+        writeln!(w, "  {:>3}. {} [{}]", rec.rank, rec.path, basis)?;
+        writeln!(w, "       {}", rec.explanation)?;
+    }
+    if t.recommendations.len() > MAX_SHOWN {
+        writeln!(
+            w,
+            "  ... and {} more (use --format json for the full list)",
+            t.recommendations.len() - MAX_SHOWN
+        )?;
+    }
+    if !t.unmapped_modules.is_empty() {
+        writeln!(
+            w,
+            "  impacted modules with NO test linked by a known method ({}):",
+            t.unmapped_modules.len()
+        )?;
+        for u in t.unmapped_modules.iter().take(MAX_SHOWN) {
+            if u.heuristic_tests.is_empty() {
+                writeln!(w, "    {}", u.path)?;
+            } else {
+                writeln!(w, "    {}  (name-match guess only: {})", u.path, u.heuristic_tests.join(", "))?;
+            }
+        }
+        if t.unmapped_modules.len() > MAX_SHOWN {
+            writeln!(w, "    ... and {} more", t.unmapped_modules.len() - MAX_SHOWN)?;
+        }
+    }
+    if t.completeness.complete {
+        writeln!(
+            w,
+            "  no known gaps in test selection (this is still not a guarantee that these tests catch every regression)"
+        )?;
+    } else {
+        writeln!(w, "  TEST SELECTION IS INCOMPLETE -- do not treat this list as the full set to run:")?;
+        for reason in &t.completeness.reasons {
+            writeln!(w, "    - {}", reason.detail)?;
+        }
     }
     Ok(())
 }

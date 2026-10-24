@@ -1,0 +1,10 @@
+{
+  "scenarios": [
+    {
+      "name": "util change: the importing test is recommended; affected modules without tests make selection incomplete (src/broken.ts is not asserted: error recovery is grammar-dependent)",
+      "changed": ["src/lib/util.ts"],
+      "recommendations_include": ["tests/main.test.ts"],
+      "complete": false
+    }
+  ]
+}

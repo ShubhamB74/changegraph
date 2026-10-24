@@ -1,0 +1,43 @@
+{
+  "scenarios": [
+    {
+      "name": "leaf change: two known tests, ranked by distance; index.ts has no test",
+      "changed": ["src/auth/session.ts"],
+      "recommendations": [
+        { "path": "tests/session.test.ts", "basis": "known", "methods": ["direct_import"], "min_distance": 1 },
+        { "path": "tests/profile.test.ts", "basis": "known", "methods": ["direct_import", "dependency_reachability"], "min_distance": 2 }
+      ],
+      "unmapped": ["src/index.ts"],
+      "complete": false,
+      "incomplete_kinds": ["unmapped_modules"]
+    },
+    {
+      "name": "mid-level change",
+      "changed": ["src/api/profile.ts"],
+      "recommendations": [
+        { "path": "tests/profile.test.ts", "basis": "known", "methods": ["direct_import"], "min_distance": 1 }
+      ],
+      "unmapped": ["src/index.ts"],
+      "complete": false,
+      "incomplete_kinds": ["unmapped_modules"]
+    },
+    {
+      "name": "only a test changed: recommended because it changed; nothing else impacted",
+      "changed": ["tests/session.test.ts"],
+      "recommendations": [
+        { "path": "tests/session.test.ts", "basis": "known", "methods": ["changed_test"], "min_distance": null }
+      ],
+      "unmapped": [],
+      "complete": true,
+      "incomplete_kinds": []
+    },
+    {
+      "name": "changing an untested module must NOT read as 'no tests needed'",
+      "changed": ["src/index.ts"],
+      "recommendations": [],
+      "unmapped": ["src/index.ts"],
+      "complete": false,
+      "incomplete_kinds": ["unmapped_modules", "no_tests_recommended"]
+    }
+  ]
+}

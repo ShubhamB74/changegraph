@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "tests": {
+    "tests/session.test.ts": ["src/auth/session.ts"],
+    "tests/profile.test.ts": ["src/api/profile.ts", "src/auth/session.ts"],
+    "tests/not-in-this-repo.test.ts": ["src/auth/session.ts"]
+  }
+}
