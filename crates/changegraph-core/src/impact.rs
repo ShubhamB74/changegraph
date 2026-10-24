@@ -212,7 +212,11 @@ struct Bfs {
 
 /// Cycle-safe reverse BFS from `starts`. Neighbour lists are sorted, so discovery order
 /// (and therefore the shortest path chosen) is deterministic.
-fn reverse_bfs(graph: &DependencyGraph, starts: &[(usize, usize)], max_depth: Option<usize>) -> Bfs {
+fn reverse_bfs(
+    graph: &DependencyGraph,
+    starts: &[(usize, usize)],
+    max_depth: Option<usize>,
+) -> Bfs {
     let n = graph.len();
     let mut dist = vec![usize::MAX; n];
     let mut parent = vec![usize::MAX; n];
@@ -443,7 +447,8 @@ pub fn analyze_impact(
                 distance: d,
             })
             .collect();
-        affected_by.sort_by(|a, b| (a.distance, &a.changed_file).cmp(&(b.distance, &b.changed_file)));
+        affected_by
+            .sort_by(|a, b| (a.distance, &a.changed_file).cmp(&(b.distance, &b.changed_file)));
         affected.push(AffectedNode {
             rank: 0,
             path: graph.node(v).path.clone(),
@@ -644,7 +649,12 @@ fn explain(seed: &Seed, hops: &[Hop], distance: usize) -> String {
         ChangedKind::RenamedFrom => format!("{} (renamed away in this change)", seed.label),
     };
     // Describe from the affected file back toward the change.
-    let chain = hops.iter().rev().map(describe).collect::<Vec<_>>().join("; ");
+    let chain = hops
+        .iter()
+        .rev()
+        .map(describe)
+        .collect::<Vec<_>>()
+        .join("; ");
     if distance == 1 {
         format!("Direct dependent of {origin}: {chain}.")
     } else {
@@ -739,9 +749,17 @@ mod tests {
         let c = &r.affected[1];
         assert_eq!(c.path_from_changed, vec!["a.ts", "b.ts", "c.ts"]);
         assert_eq!(c.hops.len(), 2);
-        assert_eq!((c.hops[0].importer.as_str(), c.hops[0].imported.as_str()), ("b.ts", "a.ts"));
-        assert_eq!((c.hops[1].importer.as_str(), c.hops[1].imported.as_str()), ("c.ts", "b.ts"));
-        assert!(c.explanation.starts_with("Transitive dependent of changed file a.ts at distance 2"));
+        assert_eq!(
+            (c.hops[0].importer.as_str(), c.hops[0].imported.as_str()),
+            ("b.ts", "a.ts")
+        );
+        assert_eq!(
+            (c.hops[1].importer.as_str(), c.hops[1].imported.as_str()),
+            ("c.ts", "b.ts")
+        );
+        assert!(c
+            .explanation
+            .starts_with("Transitive dependent of changed file a.ts at distance 2"));
         assert!(r.uncertain.is_empty());
         assert_eq!(r.changed[0].direct_dependents, 1);
         assert_eq!(r.changed[0].transitive_dependents, 1);
@@ -759,7 +777,10 @@ mod tests {
         let r = run(&g, &[modified("a.ts")], None);
         assert_eq!(
             summary(&r),
-            vec![("b.ts", ImpactClass::Direct, 1), ("c.ts", ImpactClass::Direct, 1)]
+            vec![
+                ("b.ts", ImpactClass::Direct, 1),
+                ("c.ts", ImpactClass::Direct, 1)
+            ]
         );
     }
 
@@ -768,7 +789,12 @@ mod tests {
         // c imports a and b ; d imports c ; e imports a only
         let g = graph(
             &["a.ts", "b.ts", "c.ts", "d.ts", "e.ts"],
-            &[("c.ts", "a.ts"), ("c.ts", "b.ts"), ("d.ts", "c.ts"), ("e.ts", "a.ts")],
+            &[
+                ("c.ts", "a.ts"),
+                ("c.ts", "b.ts"),
+                ("d.ts", "c.ts"),
+                ("e.ts", "a.ts"),
+            ],
         );
         let r = run(&g, &[modified("b.ts"), modified("a.ts")], None);
         // distance 1: c (2 changed deps) before e (1); then d at distance 2.
@@ -783,12 +809,18 @@ mod tests {
         assert_eq!(r.affected[0].changed_dependency_count, 2);
         assert_eq!(r.affected[0].affected_by.len(), 2);
         assert_eq!(r.affected[2].changed_dependency_count, 2); // d reaches both through c
-        assert_eq!(r.affected.iter().map(|a| a.rank).collect::<Vec<_>>(), vec![1, 2, 3]);
+        assert_eq!(
+            r.affected.iter().map(|a| a.rank).collect::<Vec<_>>(),
+            vec![1, 2, 3]
+        );
     }
 
     #[test]
     fn ties_are_broken_by_path() {
-        let g = graph(&["a.ts", "b.ts", "c.ts"], &[("c.ts", "a.ts"), ("b.ts", "a.ts")]);
+        let g = graph(
+            &["a.ts", "b.ts", "c.ts"],
+            &[("c.ts", "a.ts"), ("b.ts", "a.ts")],
+        );
         let r = run(&g, &[modified("a.ts")], None);
         assert_eq!(r.affected[0].path, "b.ts");
         assert_eq!(r.affected[1].path, "c.ts");
@@ -796,7 +828,10 @@ mod tests {
 
     #[test]
     fn a_changed_file_that_imports_another_changed_file_is_not_listed_as_affected() {
-        let g = graph(&["a.ts", "b.ts", "c.ts"], &[("b.ts", "a.ts"), ("c.ts", "b.ts")]);
+        let g = graph(
+            &["a.ts", "b.ts", "c.ts"],
+            &[("b.ts", "a.ts"), ("c.ts", "b.ts")],
+        );
         let r = run(&g, &[modified("a.ts"), modified("b.ts")], None);
         assert_eq!(summary(&r), vec![("c.ts", ImpactClass::Direct, 1)]);
         assert_eq!(r.summary.changed_files, 2);
@@ -846,7 +881,10 @@ mod tests {
 
         assert_eq!(
             summary(&r),
-            vec![("b.ts", ImpactClass::Direct, 1), ("c.ts", ImpactClass::Transitive, 2)]
+            vec![
+                ("b.ts", ImpactClass::Direct, 1),
+                ("c.ts", ImpactClass::Transitive, 2)
+            ]
         );
         assert_eq!(r.changed[0].kind, ChangedKind::Deleted);
         assert_eq!(r.changed[0].direct_dependents, 1);
@@ -856,7 +894,9 @@ mod tests {
         // d's unrelated unresolved import is uncertain; b's is explained and not repeated.
         assert_eq!(r.uncertain.len(), 1);
         assert_eq!(r.uncertain[0].path, "d.ts");
-        assert!(warnings.iter().any(|w| w.code == WarningCode::ImpactUncertainty));
+        assert!(warnings
+            .iter()
+            .any(|w| w.code == WarningCode::ImpactUncertainty));
     }
 
     #[test]
@@ -867,16 +907,30 @@ mod tests {
             &[("c.ts", "new.ts")],
             vec![unresolved("b.ts", "./old", UnresolvedReason::NotFound)],
         );
-        let renamed = ChangedFile::new("new.ts".into(), Some("old.ts".into()), ChangeStatus::Renamed);
+        let renamed = ChangedFile::new(
+            "new.ts".into(),
+            Some("old.ts".into()),
+            ChangeStatus::Renamed,
+        );
         let r = run(&g, &[renamed], None);
         assert_eq!(
             summary(&r),
-            vec![("b.ts", ImpactClass::Direct, 1), ("c.ts", ImpactClass::Direct, 1)]
+            vec![
+                ("b.ts", ImpactClass::Direct, 1),
+                ("c.ts", ImpactClass::Direct, 1)
+            ]
         );
-        let kinds: Vec<_> = r.changed.iter().map(|c| (c.path.as_str(), c.kind)).collect();
+        let kinds: Vec<_> = r
+            .changed
+            .iter()
+            .map(|c| (c.path.as_str(), c.kind))
+            .collect();
         assert_eq!(
             kinds,
-            vec![("new.ts", ChangedKind::Present), ("old.ts", ChangedKind::RenamedFrom)]
+            vec![
+                ("new.ts", ChangedKind::Present),
+                ("old.ts", ChangedKind::RenamedFrom)
+            ]
         );
         assert!(r.affected[0].explanation.contains("renamed away"));
     }
@@ -886,7 +940,13 @@ mod tests {
         let mut partial = node("p.ts");
         partial.parse_status = ParseStatus::Partial;
         let g = DependencyGraph::from_parts(
-            vec![node("a.ts"), node("b.ts"), node("m.ts"), partial, node("u.ts")],
+            vec![
+                node("a.ts"),
+                node("b.ts"),
+                node("m.ts"),
+                partial,
+                node("u.ts"),
+            ],
             vec![edge("b.ts", "a.ts")],
             vec![],
             vec![
@@ -900,9 +960,18 @@ mod tests {
         let r = run(&g, &[modified("a.ts")], None);
         let paths: Vec<_> = r.uncertain.iter().map(|u| u.path.as_str()).collect();
         assert_eq!(paths, vec!["p.ts", "u.ts"]);
-        assert_eq!(r.uncertain[0].reasons[0].kind, UncertaintyKind::ParsePartial);
-        assert_eq!(r.uncertain[1].reasons[0].kind, UncertaintyKind::UnresolvedImport);
-        assert_eq!(r.uncertain[1].reasons[0].specifier.as_deref(), Some("@x/missing"));
+        assert_eq!(
+            r.uncertain[0].reasons[0].kind,
+            UncertaintyKind::ParsePartial
+        );
+        assert_eq!(
+            r.uncertain[1].reasons[0].kind,
+            UncertaintyKind::UnresolvedImport
+        );
+        assert_eq!(
+            r.uncertain[1].reasons[0].specifier.as_deref(),
+            Some("@x/missing")
+        );
         // Uncertain files are never mixed into the confirmed results.
         assert_eq!(summary(&r), vec![("b.ts", ImpactClass::Direct, 1)]);
     }
@@ -950,7 +1019,8 @@ mod tests {
         assert_eq!(r.summary.changed_files, 1);
         assert!(warnings
             .iter()
-            .any(|w| w.code == WarningCode::UnmodeledConfigChange && w.message.contains("package.json")));
+            .any(|w| w.code == WarningCode::UnmodeledConfigChange
+                && w.message.contains("package.json")));
     }
 
     #[test]
@@ -973,12 +1043,20 @@ mod tests {
     fn results_are_deterministic() {
         let g = graph(
             &["a.ts", "b.ts", "c.ts", "d.ts"],
-            &[("b.ts", "a.ts"), ("c.ts", "a.ts"), ("d.ts", "b.ts"), ("d.ts", "c.ts")],
+            &[
+                ("b.ts", "a.ts"),
+                ("c.ts", "a.ts"),
+                ("d.ts", "b.ts"),
+                ("d.ts", "c.ts"),
+            ],
         );
         let r1 = run(&g, &[modified("a.ts")], None);
         let r2 = run(&g, &[modified("a.ts")], None);
         assert_eq!(r1, r2);
         // d is reachable via b and c at equal length; the chosen path is stable (via b).
-        assert_eq!(r1.affected[2].path_from_changed, vec!["a.ts", "b.ts", "d.ts"]);
+        assert_eq!(
+            r1.affected[2].path_from_changed,
+            vec!["a.ts", "b.ts", "d.ts"]
+        );
     }
 }

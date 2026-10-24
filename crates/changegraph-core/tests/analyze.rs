@@ -245,7 +245,10 @@ fn warns_when_graph_is_not_built_from_the_target_revision() {
 fn impact_section_is_populated_from_real_git_changes() {
     let repo = TestRepo::new();
     repo.write("src/a.ts", "export const a = 1;\n");
-    repo.write("src/b.ts", "import { a } from './a';\nexport const b = a;\n");
+    repo.write(
+        "src/b.ts",
+        "import { a } from './a';\nexport const b = a;\n",
+    );
     repo.write("src/b.test.ts", "import { b } from './b';\n");
     repo.commit_all("init");
     repo.write("src/a.ts", "export const a = 2;\n");
@@ -265,7 +268,10 @@ fn impact_section_is_populated_from_real_git_changes() {
 fn deleting_an_imported_file_flags_its_importers() {
     let repo = TestRepo::new();
     repo.write("src/a.ts", "export const a = 1;\n");
-    repo.write("src/b.ts", "import { a } from './a';\nexport const b = a;\n");
+    repo.write(
+        "src/b.ts",
+        "import { a } from './a';\nexport const b = a;\n",
+    );
     repo.commit_all("init");
     repo.remove("src/a.ts");
 
@@ -273,7 +279,9 @@ fn deleting_an_imported_file_flags_its_importers() {
     assert_eq!(changes(&report), vec![("src/a.ts", ChangeStatus::Deleted)]);
     assert_eq!(report.impact.affected.len(), 1);
     assert_eq!(report.impact.affected[0].path, "src/b.ts");
-    assert!(report.impact.affected[0].explanation.contains("deleted file src/a.ts"));
+    assert!(report.impact.affected[0]
+        .explanation
+        .contains("deleted file src/a.ts"));
 }
 
 #[test]
@@ -287,7 +295,11 @@ fn test_recommendations_and_coverage_map_flow_through_analyze() {
 
     let dir = tempfile::TempDir::new().unwrap();
     let map = dir.path().join("map.json");
-    std::fs::write(&map, r#"{"version":1,"tests":{"src/slow.test.ts":["src/a.ts"]}}"#).unwrap();
+    std::fs::write(
+        &map,
+        r#"{"version":1,"tests":{"src/slow.test.ts":["src/a.ts"]}}"#,
+    )
+    .unwrap();
 
     let mut cfg = AnalysisConfig::new(repo.path());
     cfg.coverage_map = Some(map);

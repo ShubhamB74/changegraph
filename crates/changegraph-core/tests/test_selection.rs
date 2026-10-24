@@ -69,25 +69,50 @@ fn check_fixture(name: &str, file: &str) {
                 .iter()
                 .map(|r| json!({ "path": r.path, "basis": r.basis, "methods": r.methods, "min_distance": r.min_distance }))
                 .collect();
-            assert_eq!(&Value::Array(actual), exact, "scenario `{label}`: recommendations (order matters)");
+            assert_eq!(
+                &Value::Array(actual),
+                exact,
+                "scenario `{label}`: recommendations (order matters)"
+            );
         }
-        let rec_paths: Vec<&str> = report.recommendations.iter().map(|r| r.path.as_str()).collect();
+        let rec_paths: Vec<&str> = report
+            .recommendations
+            .iter()
+            .map(|r| r.path.as_str())
+            .collect();
         for p in strings(sc.get("recommendations_include").unwrap_or(&Value::Null)) {
-            assert!(rec_paths.contains(&p.as_str()), "scenario `{label}`: missing {p}");
+            assert!(
+                rec_paths.contains(&p.as_str()),
+                "scenario `{label}`: missing {p}"
+            );
         }
         if let Some(u) = sc.get("unmapped") {
-            let actual: Vec<&str> = report.unmapped_modules.iter().map(|m| m.path.as_str()).collect();
+            let actual: Vec<&str> = report
+                .unmapped_modules
+                .iter()
+                .map(|m| m.path.as_str())
+                .collect();
             assert_eq!(strings(u), actual, "scenario `{label}`: unmapped modules");
         }
         if let Some(c) = sc.get("complete") {
-            assert_eq!(c.as_bool().unwrap(), report.completeness.complete, "scenario `{label}`: complete");
+            assert_eq!(
+                c.as_bool().unwrap(),
+                report.completeness.complete,
+                "scenario `{label}`: complete"
+            );
         }
         if let Some(k) = sc.get("incomplete_kinds") {
             let actual: Vec<String> = report
                 .completeness
                 .reasons
                 .iter()
-                .map(|r| serde_json::to_value(r.kind).unwrap().as_str().unwrap().to_string())
+                .map(|r| {
+                    serde_json::to_value(r.kind)
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .to_string()
+                })
                 .collect();
             assert_eq!(strings(k), actual, "scenario `{label}`: incomplete kinds");
         }
@@ -95,7 +120,11 @@ fn check_fixture(name: &str, file: &str) {
         // Invariants for every scenario: each recommendation is explained, and a heuristic-only
         // recommendation never claims a known method.
         for r in &report.recommendations {
-            assert!(!r.explanation.is_empty() && !r.methods.is_empty(), "`{label}`: {} unexplained", r.path);
+            assert!(
+                !r.explanation.is_empty() && !r.methods.is_empty(),
+                "`{label}`: {} unexplained",
+                r.path
+            );
             if r.basis == changegraph_core::test_mapping::Basis::Heuristic {
                 assert_eq!(r.methods, vec![Method::FilenameHeuristic]);
             }
@@ -116,17 +145,30 @@ fn edge_case_project_scenarios_match_labels() {
 #[test]
 fn committed_coverage_map_fixture_loads_and_unknown_tests_are_reported() {
     let (graph, cfg) = graph_of("simple-ts-project");
-    let map = load_coverage_map(&fixtures().join("expected/simple-ts-project.coverage-map.json")).unwrap();
-    let (report, warnings) = recommend(&graph, cfg.as_ref(), &["src/auth/session.ts".to_string()], Some(&map));
+    let map = load_coverage_map(&fixtures().join("expected/simple-ts-project.coverage-map.json"))
+        .unwrap();
+    let (report, warnings) = recommend(
+        &graph,
+        cfg.as_ref(),
+        &["src/auth/session.ts".to_string()],
+        Some(&map),
+    );
 
     // Graph-confirmed tests gain the coverage_map method; nothing is lost.
-    let session = report.recommendations.iter().find(|r| r.path == "tests/session.test.ts").unwrap();
+    let session = report
+        .recommendations
+        .iter()
+        .find(|r| r.path == "tests/session.test.ts")
+        .unwrap();
     assert!(session.methods.contains(&Method::DirectImport));
     assert!(session.methods.contains(&Method::CoverageMap));
     assert_eq!(report.coverage_map.as_ref().unwrap().tests, 3);
-    assert!(warnings
-        .iter()
-        .any(|w| w.code == WarningCode::CoverageMapIssue && w.message.contains("not-in-this-repo")));
+    assert!(
+        warnings
+            .iter()
+            .any(|w| w.code == WarningCode::CoverageMapIssue
+                && w.message.contains("not-in-this-repo"))
+    );
 }
 
 #[test]
@@ -135,5 +177,8 @@ fn recommendations_are_deterministic() {
     let changed = vec!["src/lib/util.ts".to_string(), "src/cycle/a.ts".to_string()];
     let (a, _) = recommend(&graph, cfg.as_ref(), &changed, None);
     let (b, _) = recommend(&graph, cfg.as_ref(), &changed, None);
-    assert_eq!(serde_json::to_string(&a).unwrap(), serde_json::to_string(&b).unwrap());
+    assert_eq!(
+        serde_json::to_string(&a).unwrap(),
+        serde_json::to_string(&b).unwrap()
+    );
 }

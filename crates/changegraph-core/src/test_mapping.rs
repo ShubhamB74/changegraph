@@ -189,10 +189,11 @@ pub fn load_coverage_map(path: &Path) -> Result<CoverageMap> {
             }
         }
     })?;
-    let tests = parse_coverage_map(&text).map_err(|message| ChangeGraphError::InvalidCoverageMap {
-        path: path.to_path_buf(),
-        message,
-    })?;
+    let tests =
+        parse_coverage_map(&text).map_err(|message| ChangeGraphError::InvalidCoverageMap {
+            path: path.to_path_buf(),
+            message,
+        })?;
     Ok(CoverageMap {
         source_path: path.display().to_string(),
         tests,
@@ -213,7 +214,9 @@ pub fn parse_coverage_map(
     let tests = value
         .get("tests")
         .and_then(|t| t.as_object())
-        .ok_or_else(|| "`tests` must be an object mapping test paths to arrays of source paths".to_string())?;
+        .ok_or_else(|| {
+            "`tests` must be an object mapping test paths to arrays of source paths".to_string()
+        })?;
     let mut out = BTreeMap::new();
     for (test, files) in tests {
         let files = files
@@ -366,7 +369,9 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
             if let Some(i) = graph.node_index(&a.path) {
                 targets.entry(i).or_insert(ModuleStatus::Affected);
             }
-            modules.entry(a.path.clone()).or_insert(ModuleStatus::Affected);
+            modules
+                .entry(a.path.clone())
+                .or_insert(ModuleStatus::Affected);
         }
     }
 
@@ -396,7 +401,9 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
     for &t in &closure_tests {
         let mut covers = Vec::new();
         for (w, dist, first) in forward_closure(graph, t) {
-            let Some(&status) = targets.get(&w) else { continue };
+            let Some(&status) = targets.get(&w) else {
+                continue;
+            };
             let module = graph.node(w).path.clone();
             if dist == 1 {
                 let detail = match graph.edge_between(t, w) {
@@ -430,7 +437,9 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
         if a.category != FileCategory::Test {
             continue;
         }
-        let Some(t) = graph.node_index(&a.path) else { continue };
+        let Some(t) = graph.node_index(&a.path) else {
+            continue;
+        };
         for by in &a.affected_by {
             if removed_paths.contains(&by.changed_file) {
                 recs.entry(t).or_default().covers.push(Coverage {
@@ -479,7 +488,8 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
                         method: Method::CoverageMap,
                         distance: None,
                         via: None,
-                        detail: "the coverage map lists this file as executed by the test".to_string(),
+                        detail: "the coverage map lists this file as executed by the test"
+                            .to_string(),
                     });
                 }
             }
@@ -566,8 +576,10 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
             .covers
             .iter()
             .filter(|c| {
-                matches!(c.method, Method::DirectImport | Method::DependencyReachability)
-                    && c.module_status != ModuleStatus::Affected
+                matches!(
+                    c.method,
+                    Method::DirectImport | Method::DependencyReachability
+                ) && c.module_status != ModuleStatus::Affected
             })
             .filter_map(|c| c.distance)
             .min();
@@ -629,7 +641,8 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
     if impact.depth_limited {
         reasons.push(IncompleteReason {
             kind: IncompleteKind::DepthLimited,
-            detail: "impact traversal was cut off by --max-depth; tests beyond it are not listed".to_string(),
+            detail: "impact traversal was cut off by --max-depth; tests beyond it are not listed"
+                .to_string(),
         });
     }
     if !impact.uncertain.is_empty() {
@@ -642,27 +655,41 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
             ),
         });
     }
-    if impact.ignored_changed_files.iter().any(|i| is_config_file(&i.path)) {
+    if impact
+        .ignored_changed_files
+        .iter()
+        .any(|i| is_config_file(&i.path))
+    {
         reasons.push(IncompleteReason {
             kind: IncompleteKind::UnmodeledConfigChange,
-            detail: "a configuration or dependency file changed; its effect on tests is not modelled".to_string(),
+            detail:
+                "a configuration or dependency file changed; its effect on tests is not modelled"
+                    .to_string(),
         });
     }
     let unanalyzed = impact
         .ignored_changed_files
         .iter()
-        .filter(|i| matches!(i.reason, IgnoredReason::Excluded | IgnoredReason::NotInGraph))
+        .filter(|i| {
+            matches!(
+                i.reason,
+                IgnoredReason::Excluded | IgnoredReason::NotInGraph
+            )
+        })
         .count();
     if unanalyzed > 0 {
         reasons.push(IncompleteReason {
             kind: IncompleteKind::UnanalyzedChangedFiles,
-            detail: format!("{unanalyzed} changed source file(s) were excluded or are not in the graph"),
+            detail: format!(
+                "{unanalyzed} changed source file(s) were excluded or are not in the graph"
+            ),
         });
     }
     if input.graph_target_mismatch {
         reasons.push(IncompleteReason {
             kind: IncompleteKind::GraphTargetMismatch,
-            detail: "the dependency graph does not describe the comparison target revision".to_string(),
+            detail: "the dependency graph does not describe the comparison target revision"
+                .to_string(),
         });
     }
     let has_real_change = impact.summary.changed_files > 0 || unanalyzed > 0;
@@ -675,10 +702,7 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
     }
     let complete = reasons.is_empty();
     if !complete {
-        let kinds: Vec<String> = reasons
-            .iter()
-            .map(|r| format!("{:?}", r.kind))
-            .collect();
+        let kinds: Vec<String> = reasons.iter().map(|r| format!("{:?}", r.kind)).collect();
         warnings.push(Warning {
             code: WarningCode::TestSelectionIncomplete,
             message: format!(
@@ -688,7 +712,10 @@ pub fn recommend_tests(input: &TestInput) -> (TestReport, Vec<Warning>) {
         });
     }
 
-    let known = recommendations.iter().filter(|r| r.basis == Basis::Known).count();
+    let known = recommendations
+        .iter()
+        .filter(|r| r.basis == Basis::Known)
+        .count();
     let summary = TestSummary {
         total_test_files: test_nodes.len(),
         recommended: recommendations.len(),
@@ -716,7 +743,12 @@ fn explain(changed_test: bool, covers: &[Coverage], basis: Basis) -> String {
     }
     let graph: Vec<&Coverage> = covers
         .iter()
-        .filter(|c| matches!(c.method, Method::DirectImport | Method::DependencyReachability))
+        .filter(|c| {
+            matches!(
+                c.method,
+                Method::DirectImport | Method::DependencyReachability
+            )
+        })
         .collect();
     if let Some(first) = graph.first() {
         let how = match first.distance {
@@ -730,12 +762,24 @@ fn explain(changed_test: bool, covers: &[Coverage], basis: Basis) -> String {
             first.module
         ));
     }
-    let mapped = covers.iter().filter(|c| c.method == Method::CoverageMap).count();
+    let mapped = covers
+        .iter()
+        .filter(|c| c.method == Method::CoverageMap)
+        .count();
     if mapped > 0 {
-        parts.push(format!("the coverage map links it to {mapped} impacted module(s)"));
+        parts.push(format!(
+            "the coverage map links it to {mapped} impacted module(s)"
+        ));
     }
-    if let Some(h) = covers.iter().find(|c| c.method == Method::FilenameHeuristic) {
-        let prefix = if basis == Basis::Heuristic { "FILENAME HEURISTIC ONLY, not a proven relationship: " } else { "also matched by naming convention: " };
+    if let Some(h) = covers
+        .iter()
+        .find(|c| c.method == Method::FilenameHeuristic)
+    {
+        let prefix = if basis == Basis::Heuristic {
+            "FILENAME HEURISTIC ONLY, not a proven relationship: "
+        } else {
+            "also matched by naming convention: "
+        };
         parts.push(format!("{prefix}{} ({})", h.module, h.detail));
     }
     if parts.is_empty() {
@@ -773,12 +817,19 @@ mod tests {
             to: to.to_string(),
             kind: ImportKind::Import,
             type_only: false,
-            specifier: format!("./{}", to.rsplit('/').next().unwrap().trim_end_matches(".ts")),
+            specifier: format!(
+                "./{}",
+                to.rsplit('/').next().unwrap().trim_end_matches(".ts")
+            ),
             line: 1,
         }
     }
 
-    fn graph(names: &[&str], edges: &[(&str, &str)], unresolved: Vec<UnresolvedImport>) -> DependencyGraph {
+    fn graph(
+        names: &[&str],
+        edges: &[(&str, &str)],
+        unresolved: Vec<UnresolvedImport>,
+    ) -> DependencyGraph {
         DependencyGraph::from_parts(
             names.iter().map(|n| node(n)).collect(),
             edges.iter().map(|(a, b)| edge(a, b)).collect(),
@@ -827,7 +878,14 @@ mod tests {
     #[test]
     fn known_recommendations_are_ranked_by_distance_to_the_changed_module() {
         let g = graph(
-            &["src/a.ts", "src/b.ts", "tests/a.test.ts", "tests/b.test.ts", "tests/x.test.ts", "src/z.ts"],
+            &[
+                "src/a.ts",
+                "src/b.ts",
+                "tests/a.test.ts",
+                "tests/b.test.ts",
+                "tests/x.test.ts",
+                "src/z.ts",
+            ],
             &[
                 ("src/b.ts", "src/a.ts"),
                 ("tests/a.test.ts", "src/a.ts"),
@@ -864,7 +922,11 @@ mod tests {
 
     #[test]
     fn missing_mapping_never_reads_as_no_tests_needed() {
-        let g = graph(&["src/a.ts", "src/b.ts"], &[("src/b.ts", "src/a.ts")], vec![]);
+        let g = graph(
+            &["src/a.ts", "src/b.ts"],
+            &[("src/b.ts", "src/a.ts")],
+            vec![],
+        );
         let (r, w) = recommend(&g, &[modified("src/a.ts")], None, None);
         assert!(r.recommendations.is_empty());
         let unmapped: Vec<_> = r.unmapped_modules.iter().map(|u| u.path.as_str()).collect();
@@ -873,7 +935,9 @@ mod tests {
         let kinds: Vec<_> = r.completeness.reasons.iter().map(|x| x.kind).collect();
         assert!(kinds.contains(&IncompleteKind::UnmappedModules));
         assert!(kinds.contains(&IncompleteKind::NoTestsRecommended));
-        assert!(w.iter().any(|w| w.code == WarningCode::TestSelectionIncomplete));
+        assert!(w
+            .iter()
+            .any(|w| w.code == WarningCode::TestSelectionIncomplete));
     }
 
     #[test]
@@ -887,7 +951,10 @@ mod tests {
         assert_eq!(t.methods, vec![Method::FilenameHeuristic]);
         assert!(t.explanation.contains("FILENAME HEURISTIC ONLY"));
         assert_eq!(r.unmapped_modules[0].path, "src/util.ts");
-        assert_eq!(r.unmapped_modules[0].heuristic_tests, vec!["tests/util.test.ts"]);
+        assert_eq!(
+            r.unmapped_modules[0].heuristic_tests,
+            vec!["tests/util.test.ts"]
+        );
         assert!(!r.completeness.complete);
         assert_eq!(r.summary.heuristic_only, 1);
     }
@@ -910,13 +977,23 @@ mod tests {
     fn a_changed_test_ranks_first_and_is_known() {
         let g = graph(
             &["src/a.ts", "tests/a.test.ts", "tests/c.test.ts"],
-            &[("tests/a.test.ts", "src/a.ts"), ("tests/c.test.ts", "src/a.ts")],
+            &[
+                ("tests/a.test.ts", "src/a.ts"),
+                ("tests/c.test.ts", "src/a.ts"),
+            ],
             vec![],
         );
-        let (r, _) = recommend(&g, &[modified("src/a.ts"), modified("tests/c.test.ts")], None, None);
+        let (r, _) = recommend(
+            &g,
+            &[modified("src/a.ts"), modified("tests/c.test.ts")],
+            None,
+            None,
+        );
         assert_eq!(paths(&r), vec!["tests/c.test.ts", "tests/a.test.ts"]);
         assert!(r.recommendations[0].methods.contains(&Method::ChangedTest));
-        assert!(r.recommendations[0].explanation.contains("the test file itself changed"));
+        assert!(r.recommendations[0]
+            .explanation
+            .contains("the test file itself changed"));
     }
 
     #[test]
@@ -932,9 +1009,18 @@ mod tests {
     fn coverage_map_adds_known_recommendations_and_warns_about_unknown_tests() {
         let g = graph(&["src/a.ts", "tests/m.test.ts"], &[], vec![]);
         let mut tests = BTreeMap::new();
-        tests.insert("tests/m.test.ts".to_string(), vec!["src/a.ts".to_string(), "src/untouched.ts".to_string()]);
-        tests.insert("tests/ghost.test.ts".to_string(), vec!["src/a.ts".to_string()]);
-        let cm = CoverageMap { source_path: "cov.json".into(), tests };
+        tests.insert(
+            "tests/m.test.ts".to_string(),
+            vec!["src/a.ts".to_string(), "src/untouched.ts".to_string()],
+        );
+        tests.insert(
+            "tests/ghost.test.ts".to_string(),
+            vec!["src/a.ts".to_string()],
+        );
+        let cm = CoverageMap {
+            source_path: "cov.json".into(),
+            tests,
+        };
         let (r, w) = recommend(&g, &[modified("src/a.ts")], None, Some(&cm));
 
         assert_eq!(paths(&r), vec!["tests/m.test.ts"]);
@@ -945,7 +1031,9 @@ mod tests {
         assert!(r.unmapped_modules.is_empty());
         assert!(r.completeness.complete);
         assert_eq!(r.coverage_map.as_ref().unwrap().tests, 2);
-        assert!(w.iter().any(|w| w.code == WarningCode::CoverageMapIssue && w.message.contains("ghost")));
+        assert!(w
+            .iter()
+            .any(|w| w.code == WarningCode::CoverageMapIssue && w.message.contains("ghost")));
     }
 
     #[test]
@@ -959,7 +1047,11 @@ mod tests {
             type_only: false,
             line: 1,
         }];
-        let g = graph(&["src/b.ts", "tests/b.test.ts"], &[("tests/b.test.ts", "src/b.ts")], unresolved);
+        let g = graph(
+            &["src/b.ts", "tests/b.test.ts"],
+            &[("tests/b.test.ts", "src/b.ts")],
+            unresolved,
+        );
         let deleted = ChangedFile::new("src/a.ts".into(), None, ChangeStatus::Deleted);
         let (r, _) = recommend(&g, &[deleted], None, None);
         assert_eq!(paths(&r), vec!["tests/b.test.ts"]);
@@ -976,8 +1068,16 @@ mod tests {
         let mut partial = node("src/p.ts");
         partial.parse_status = ParseStatus::Partial;
         let g = DependencyGraph::from_parts(
-            vec![node("src/a.ts"), node("src/b.ts"), partial, node("tests/b.test.ts")],
-            vec![edge("src/b.ts", "src/a.ts"), edge("tests/b.test.ts", "src/b.ts")],
+            vec![
+                node("src/a.ts"),
+                node("src/b.ts"),
+                partial,
+                node("tests/b.test.ts"),
+            ],
+            vec![
+                edge("src/b.ts", "src/a.ts"),
+                edge("tests/b.test.ts", "src/b.ts"),
+            ],
             vec![],
             vec![],
         );
@@ -990,8 +1090,16 @@ mod tests {
 
     #[test]
     fn unanalyzed_source_changes_and_config_changes_are_flagged() {
-        let g = graph(&["src/a.ts", "tests/a.test.ts"], &[("tests/a.test.ts", "src/a.ts")], vec![]);
-        let changed = vec![modified("src/a.ts"), modified("src/ghost.ts"), modified("package.json")];
+        let g = graph(
+            &["src/a.ts", "tests/a.test.ts"],
+            &[("tests/a.test.ts", "src/a.ts")],
+            vec![],
+        );
+        let changed = vec![
+            modified("src/a.ts"),
+            modified("src/ghost.ts"),
+            modified("package.json"),
+        ];
         let (r, _) = recommend(&g, &changed, None, None);
         let kinds: Vec<_> = r.completeness.reasons.iter().map(|x| x.kind).collect();
         assert!(kinds.contains(&IncompleteKind::UnanalyzedChangedFiles));
@@ -1003,16 +1111,30 @@ mod tests {
     fn docs_only_changes_do_not_cry_wolf_and_graph_mismatch_is_flagged() {
         let g = graph(&["src/a.ts"], &[], vec![]);
         let (impact, _) = analyze_impact(&g, &[modified("README.md")], None, None);
-        let (r, w) = recommend_tests(&TestInput { graph: &g, impact: &impact, coverage: None, graph_target_mismatch: false });
+        let (r, w) = recommend_tests(&TestInput {
+            graph: &g,
+            impact: &impact,
+            coverage: None,
+            graph_target_mismatch: false,
+        });
         assert!(r.completeness.complete && r.recommendations.is_empty() && w.is_empty());
 
-        let (r2, _) = recommend_tests(&TestInput { graph: &g, impact: &impact, coverage: None, graph_target_mismatch: true });
-        assert_eq!(r2.completeness.reasons[0].kind, IncompleteKind::GraphTargetMismatch);
+        let (r2, _) = recommend_tests(&TestInput {
+            graph: &g,
+            impact: &impact,
+            coverage: None,
+            graph_target_mismatch: true,
+        });
+        assert_eq!(
+            r2.completeness.reasons[0].kind,
+            IncompleteKind::GraphTargetMismatch
+        );
     }
 
     #[test]
     fn coverage_map_parsing_validates_the_format() {
-        let ok = parse_coverage_map(r#"{"version":1,"tests":{"./t\\a.test.ts":["./src/a.ts"]}}"#).unwrap();
+        let ok = parse_coverage_map(r#"{"version":1,"tests":{"./t\\a.test.ts":["./src/a.ts"]}}"#)
+            .unwrap();
         assert_eq!(ok["t/a.test.ts"], vec!["src/a.ts"]);
         assert!(parse_coverage_map(r#"{"version":2,"tests":{}}"#).is_err());
         assert!(parse_coverage_map(r#"{"version":1}"#).is_err());
@@ -1025,7 +1147,10 @@ mod tests {
     fn recommendations_are_deterministic() {
         let g = graph(
             &["src/a.ts", "tests/a.test.ts", "tests/b.test.ts"],
-            &[("tests/a.test.ts", "src/a.ts"), ("tests/b.test.ts", "src/a.ts")],
+            &[
+                ("tests/a.test.ts", "src/a.ts"),
+                ("tests/b.test.ts", "src/a.ts"),
+            ],
             vec![],
         );
         let (r1, _) = recommend(&g, &[modified("src/a.ts")], None, None);

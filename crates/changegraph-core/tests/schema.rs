@@ -52,7 +52,9 @@ fn validate(root: &Value, schema: &Value, v: &Value, at: &str, errors: &mut Vec<
         }
     }
     match schema.get("type") {
-        Some(Value::String(t)) if !type_ok(t, v) => errors.push(format!("{at}: expected {t}, got {v}")),
+        Some(Value::String(t)) if !type_ok(t, v) => {
+            errors.push(format!("{at}: expected {t}, got {v}"))
+        }
         Some(Value::Array(ts)) if !ts.iter().filter_map(Value::as_str).any(|t| type_ok(t, v)) => {
             errors.push(format!("{at}: expected one of {ts:?}, got {v}"))
         }
@@ -100,18 +102,29 @@ fn schema() -> Value {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../docs/schema")
         .join(format!("report-{SCHEMA_VERSION}.schema.json"));
-    let text = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("schema file for {SCHEMA_VERSION} must exist at {}: {e}", path.display()));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "schema file for {SCHEMA_VERSION} must exist at {}: {e}",
+            path.display()
+        )
+    });
     serde_json::from_str(&text).unwrap()
 }
 
 fn assert_conforms(report: &changegraph_core::Report) {
     let schema = schema();
-    assert_eq!(schema["properties"]["schema_version"]["const"], SCHEMA_VERSION);
+    assert_eq!(
+        schema["properties"]["schema_version"]["const"],
+        SCHEMA_VERSION
+    );
     let value = serde_json::to_value(report).unwrap();
     let mut errors = Vec::new();
     validate(&schema, &schema, &value, "$", &mut errors);
-    assert!(errors.is_empty(), "report does not conform to the schema:\n{}", errors.join("\n"));
+    assert!(
+        errors.is_empty(),
+        "report does not conform to the schema:\n{}",
+        errors.join("\n")
+    );
 }
 
 /// A repository that exercises as many report fields as practical.
@@ -124,7 +137,10 @@ fn rich_repo() -> TestRepo {
     );
     repo.write("src/b.test.ts", "import { b } from './b';\n");
     repo.write("src/old.ts", "export const old = 1;\n");
-    repo.write("src/c.ts", "import { old } from './old';\nexport const c = old;\n");
+    repo.write(
+        "src/c.ts",
+        "import { old } from './old';\nexport const c = old;\n",
+    );
     repo.write("src/broken.ts", "export const x = ;\n");
     repo.write("src/util.ts", "export const u = 1;\n");
     repo.write("src/util.test.ts", "test('u', () => {});\n");
@@ -132,7 +148,10 @@ fn rich_repo() -> TestRepo {
     repo.write("src/cyc2.ts", "import './cyc1';\n");
     repo.write("README.md", "# hi\n");
     repo.write("package.json", "{}\n");
-    repo.write("tsconfig.json", "{ \"compilerOptions\": { \"baseUrl\": \".\" } }\n");
+    repo.write(
+        "tsconfig.json",
+        "{ \"compilerOptions\": { \"baseUrl\": \".\" } }\n",
+    );
     repo.commit_all("init");
 
     repo.write("src/a.ts", "export const a = 2;\n"); // modified, has dependents + a test
@@ -150,7 +169,11 @@ fn working_tree_report_conforms_to_schema() {
     let repo = rich_repo();
     let map_dir = tempfile::TempDir::new().unwrap();
     let map = map_dir.path().join("map.json");
-    std::fs::write(&map, r#"{"version":1,"tests":{"src/b.test.ts":["src/a.ts"],"ghost.test.ts":["src/a.ts"]}}"#).unwrap();
+    std::fs::write(
+        &map,
+        r#"{"version":1,"tests":{"src/b.test.ts":["src/a.ts"],"ghost.test.ts":["src/a.ts"]}}"#,
+    )
+    .unwrap();
 
     let mut cfg = AnalysisConfig::new(repo.path());
     cfg.coverage_map = Some(map);
@@ -160,7 +183,11 @@ fn working_tree_report_conforms_to_schema() {
     assert!(!report.impact.affected.is_empty());
     assert!(!report.impact.uncertain.is_empty());
     assert!(!report.impact.ignored_changed_files.is_empty());
-    assert!(report.impact.changed.iter().any(|c| c.kind != changegraph_core::impact::ChangedKind::Present));
+    assert!(report
+        .impact
+        .changed
+        .iter()
+        .any(|c| c.kind != changegraph_core::impact::ChangedKind::Present));
     assert!(!report.test_recommendations.recommendations.is_empty());
     assert!(!report.test_recommendations.unmapped_modules.is_empty());
     assert!(!report.test_recommendations.completeness.complete);
@@ -212,8 +239,14 @@ fn the_validator_actually_rejects_bad_reports() {
     let mut errors = Vec::new();
     validate(&schema, &schema, &value, "$", &mut errors);
     let joined = errors.join("\n");
-    assert!(joined.contains("unexpected property `surprise`"), "{joined}");
+    assert!(
+        joined.contains("unexpected property `surprise`"),
+        "{joined}"
+    );
     assert!(joined.contains("expected integer"), "{joined}");
     assert!(joined.contains("is not one of"), "{joined}");
-    assert!(joined.contains("missing required property `impact`"), "{joined}");
+    assert!(
+        joined.contains("missing required property `impact`"),
+        "{joined}"
+    );
 }

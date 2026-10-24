@@ -223,7 +223,10 @@ fn io_error(path: &Path) -> impl FnOnce(io::Error) -> ChangeGraphError {
 /// Write to a temporary file in the destination directory, then rename over `path`, so a
 /// failure never leaves a truncated report behind.
 fn write_atomic(path: &Path, args: &AnalyzeArgs, report: &Report) -> Result<(), ChangeGraphError> {
-    let mut tmp_name = path.file_name().map(|n| n.to_os_string()).unwrap_or_default();
+    let mut tmp_name = path
+        .file_name()
+        .map(|n| n.to_os_string())
+        .unwrap_or_default();
     tmp_name.push(format!(".tmp-{}", std::process::id()));
     let tmp = path.with_file_name(tmp_name);
 
