@@ -22,7 +22,11 @@ fn graph_of(name: &str) -> (DependencyGraph, Option<tsconfig::TsConfig>) {
     (graph, cfg)
 }
 
-fn impact_for(graph: &DependencyGraph, cfg: Option<&tsconfig::TsConfig>, changed: &[String]) -> ImpactReport {
+fn impact_for(
+    graph: &DependencyGraph,
+    cfg: Option<&tsconfig::TsConfig>,
+    changed: &[String],
+) -> ImpactReport {
     let files: Vec<ChangedFile> = changed
         .iter()
         .map(|p| ChangedFile::new(p.clone(), None, ChangeStatus::Modified))
@@ -63,15 +67,30 @@ fn check_fixture(name: &str, expectation_file: &str) {
                     })
                 })
                 .collect();
-            assert_eq!(&Value::Array(actual), exact, "scenario `{label}`: affected list (order matters)");
+            assert_eq!(
+                &Value::Array(actual),
+                exact,
+                "scenario `{label}`: affected list (order matters)"
+            );
         }
         for p in strings(scenario.get("affected_includes").unwrap_or(&Value::Null)) {
-            assert!(affected_paths.contains(&p.as_str()), "scenario `{label}`: missing {p}");
+            assert!(
+                affected_paths.contains(&p.as_str()),
+                "scenario `{label}`: missing {p}"
+            );
         }
         if let Some(u) = scenario.get("uncertain") {
-            assert_eq!(strings(u), uncertain_paths, "scenario `{label}`: uncertain list");
+            assert_eq!(
+                strings(u),
+                uncertain_paths,
+                "scenario `{label}`: uncertain list"
+            );
         }
-        for p in strings(scenario.get("uncertain_includes_or_affected").unwrap_or(&Value::Null)) {
+        for p in strings(
+            scenario
+                .get("uncertain_includes_or_affected")
+                .unwrap_or(&Value::Null),
+        ) {
             assert!(
                 affected_paths.contains(&p.as_str()) || uncertain_paths.contains(&p.as_str()),
                 "scenario `{label}`: {p} must be affected or flagged uncertain, never silently ignored"
@@ -80,9 +99,17 @@ fn check_fixture(name: &str, expectation_file: &str) {
 
         // Invariants for every scenario.
         for a in &report.affected {
-            assert!(!strings(&scenario["changed"]).contains(&a.path), "`{label}`: changed file listed as affected");
+            assert!(
+                !strings(&scenario["changed"]).contains(&a.path),
+                "`{label}`: changed file listed as affected"
+            );
             assert_eq!(a.path_from_changed.last(), Some(&a.path));
-            assert_eq!(a.hops.len(), a.distance, "`{label}`: one hop per step for {}", a.path);
+            assert_eq!(
+                a.hops.len(),
+                a.distance,
+                "`{label}`: one hop per step for {}",
+                a.path
+            );
             assert!(!a.explanation.is_empty());
         }
     }
@@ -104,5 +131,8 @@ fn impact_is_deterministic() {
     let changed = vec!["src/lib/util.ts".to_string(), "src/cycle/a.ts".to_string()];
     let a = impact_for(&graph, cfg.as_ref(), &changed);
     let b = impact_for(&graph, cfg.as_ref(), &changed);
-    assert_eq!(serde_json::to_string(&a).unwrap(), serde_json::to_string(&b).unwrap());
+    assert_eq!(
+        serde_json::to_string(&a).unwrap(),
+        serde_json::to_string(&b).unwrap()
+    );
 }

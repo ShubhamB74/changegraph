@@ -41,7 +41,9 @@ pub fn load(root: &Path) -> (Option<TsConfig>, Vec<Warning>) {
         Err(e) => {
             return (
                 None,
-                vec![issue(format!("could not read tsconfig.json: {e}; path aliases are disabled"))],
+                vec![issue(format!(
+                    "could not read tsconfig.json: {e}; path aliases are disabled"
+                ))],
             )
         }
     };
@@ -59,7 +61,9 @@ pub fn load(root: &Path) -> (Option<TsConfig>, Vec<Warning>) {
         }
         Err(msg) => (
             None,
-            vec![issue(format!("could not parse tsconfig.json: {msg}; path aliases are disabled"))],
+            vec![issue(format!(
+                "could not parse tsconfig.json: {msg}; path aliases are disabled"
+            ))],
         ),
     }
 }
@@ -91,7 +95,11 @@ pub fn parse(text: &str) -> Result<TsConfig, String> {
         for (pattern, targets) in paths {
             let targets: Vec<String> = targets
                 .as_array()
-                .map(|a| a.iter().filter_map(|t| t.as_str().map(str::to_string)).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|t| t.as_str().map(str::to_string))
+                        .collect()
+                })
                 .unwrap_or_default();
             cfg.aliases.push(PathAlias {
                 pattern: pattern.clone(),

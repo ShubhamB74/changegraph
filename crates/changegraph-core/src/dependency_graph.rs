@@ -299,7 +299,12 @@ impl DependencyGraph {
         let cycles: Vec<Vec<String>> = self
             .cycles()
             .into_iter()
-            .map(|group| group.into_iter().map(|i| self.nodes[i].path.clone()).collect())
+            .map(|group| {
+                group
+                    .into_iter()
+                    .map(|i| self.nodes[i].path.clone())
+                    .collect()
+            })
             .collect();
 
         let count = |s: ParseStatus| self.nodes.iter().filter(|n| n.parse_status == s).count();
@@ -504,7 +509,11 @@ mod tests {
         let out = names(&g, &g.reverse_reachable(&[a], None));
         assert_eq!(
             out,
-            vec![("b".to_string(), 1), ("c".to_string(), 2), ("d".to_string(), 3)]
+            vec![
+                ("b".to_string(), 1),
+                ("c".to_string(), 2),
+                ("d".to_string(), 3)
+            ]
         );
     }
 
@@ -527,7 +536,11 @@ mod tests {
         // Starts are excluded even though `a` is reachable from itself via the cycle.
         assert_eq!(
             out,
-            vec![("b".to_string(), 1), ("d".to_string(), 1), ("c".to_string(), 2)]
+            vec![
+                ("b".to_string(), 1),
+                ("d".to_string(), 1),
+                ("c".to_string(), 2)
+            ]
         );
     }
 
@@ -551,7 +564,8 @@ mod tests {
     fn cycle_detection_handles_nested_components_and_deep_chains() {
         // Two separate 2-cycles joined by a one-way edge, plus a 5_000-node chain
         // (iterative algorithm must not overflow the stack).
-        let mut names_owned: Vec<String> = ["a", "b", "c", "d"].iter().map(|s| s.to_string()).collect();
+        let mut names_owned: Vec<String> =
+            ["a", "b", "c", "d"].iter().map(|s| s.to_string()).collect();
         let mut edges: Vec<(String, String)> = vec![
             ("a".into(), "b".into()),
             ("b".into(), "a".into()),
@@ -566,8 +580,10 @@ mod tests {
             edges.push((format!("z{i:05}"), format!("z{:05}", i - 1)));
         }
         let name_refs: Vec<&str> = names_owned.iter().map(String::as_str).collect();
-        let edge_refs: Vec<(&str, &str)> =
-            edges.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect();
+        let edge_refs: Vec<(&str, &str)> = edges
+            .iter()
+            .map(|(a, b)| (a.as_str(), b.as_str()))
+            .collect();
         let g = graph(&name_refs, &edge_refs);
         assert_eq!(g.cycles(), vec![vec![0, 1], vec![2, 3]]);
     }

@@ -7,7 +7,12 @@ use std::process::{Command, Output};
 use tempfile::TempDir;
 
 fn git(dir: &Path, args: &[&str]) {
-    let out = Command::new("git").arg("-C").arg(dir).args(args).output().unwrap();
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args(args)
+        .output()
+        .unwrap();
     assert!(
         out.status.success(),
         "git {:?}: {}",
@@ -82,8 +87,16 @@ fn json_output_includes_dependency_graph() {
 #[test]
 fn json_output_includes_impact_with_explanations() {
     let repo = init_repo(); // src/a.ts
-    fs::write(repo.path().join("src/b.ts"), "import { a } from './a';\nexport const b = a;\n").unwrap();
-    fs::write(repo.path().join("src/c.ts"), "import { b } from './b';\nexport const c = b;\n").unwrap();
+    fs::write(
+        repo.path().join("src/b.ts"),
+        "import { a } from './a';\nexport const b = a;\n",
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("src/c.ts"),
+        "import { b } from './b';\nexport const c = b;\n",
+    )
+    .unwrap();
     git(repo.path(), &["add", "-A"]);
     git(repo.path(), &["commit", "-q", "-m", "add b, c"]);
     fs::write(repo.path().join("src/a.ts"), "export const a = 2;\n").unwrap();
@@ -103,15 +116,26 @@ fn json_output_includes_impact_with_explanations() {
         im["affected"][1]["path_from_changed"],
         serde_json::json!(["src/a.ts", "src/b.ts", "src/c.ts"])
     );
-    assert!(im["affected"][1]["explanation"].as_str().unwrap().contains("distance 2"));
+    assert!(im["affected"][1]["explanation"]
+        .as_str()
+        .unwrap()
+        .contains("distance 2"));
     assert_eq!(im["depth_limited"], false);
 }
 
 #[test]
 fn max_depth_limits_impact_and_is_reported() {
     let repo = init_repo();
-    fs::write(repo.path().join("src/b.ts"), "import { a } from './a';\nexport const b = a;\n").unwrap();
-    fs::write(repo.path().join("src/c.ts"), "import { b } from './b';\nexport const c = b;\n").unwrap();
+    fs::write(
+        repo.path().join("src/b.ts"),
+        "import { a } from './a';\nexport const b = a;\n",
+    )
+    .unwrap();
+    fs::write(
+        repo.path().join("src/c.ts"),
+        "import { b } from './b';\nexport const c = b;\n",
+    )
+    .unwrap();
     git(repo.path(), &["add", "-A"]);
     git(repo.path(), &["commit", "-q", "-m", "add b, c"]);
     fs::write(repo.path().join("src/a.ts"), "export const a = 2;\n").unwrap();
@@ -128,18 +152,32 @@ fn max_depth_limits_impact_and_is_reported() {
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(v["impact"]["summary"]["affected"], 1);
     assert_eq!(v["impact"]["depth_limited"], true);
-    let codes: Vec<_> = v["warnings"].as_array().unwrap().iter().map(|w| w["code"].clone()).collect();
+    let codes: Vec<_> = v["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["code"].clone())
+        .collect();
     assert!(codes.contains(&serde_json::json!("impact_depth_limited")));
 
     // Not a number -> usage error from clap (exit code 2).
-    let out = run(&["analyze", repo.path().to_str().unwrap(), "--max-depth", "abc"]);
+    let out = run(&[
+        "analyze",
+        repo.path().to_str().unwrap(),
+        "--max-depth",
+        "abc",
+    ]);
     assert_eq!(code(&out), 2);
 }
 
 #[test]
 fn text_output_shows_impact_section() {
     let repo = init_repo();
-    fs::write(repo.path().join("src/b.ts"), "import { a } from './a';\nexport const b = a;\n").unwrap();
+    fs::write(
+        repo.path().join("src/b.ts"),
+        "import { a } from './a';\nexport const b = a;\n",
+    )
+    .unwrap();
     git(repo.path(), &["add", "-A"]);
     git(repo.path(), &["commit", "-q", "-m", "add b"]);
     fs::write(repo.path().join("src/a.ts"), "export const a = 2;\n").unwrap();
@@ -147,7 +185,10 @@ fn text_output_shows_impact_section() {
     assert_eq!(code(&out), 0);
     let text = String::from_utf8_lossy(&out.stdout);
     assert!(text.contains("Impact"), "{text}");
-    assert!(text.contains("Direct dependent of changed file src/a.ts"), "{text}");
+    assert!(
+        text.contains("Direct dependent of changed file src/a.ts"),
+        "{text}"
+    );
 }
 
 #[test]

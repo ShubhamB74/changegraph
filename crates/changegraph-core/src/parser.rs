@@ -166,7 +166,9 @@ fn line_of(node: Node) -> u32 {
 fn string_value(node: Node, src: &[u8]) -> Option<String> {
     let text = node.utf8_text(src).ok()?.trim();
     let bytes = text.as_bytes();
-    if text.len() >= 2 && (bytes[0] == b'"' || bytes[0] == b'\'') && bytes[text.len() - 1] == bytes[0]
+    if text.len() >= 2
+        && (bytes[0] == b'"' || bytes[0] == b'\'')
+        && bytes[text.len() - 1] == bytes[0]
     {
         Some(text[1..text.len() - 1].to_string())
     } else {
@@ -440,10 +442,16 @@ mod tests {
     #[test]
     fn javascript_and_tsx_grammars_work() {
         let mut p = SourceParser::new();
-        let js = p.parse(Language::JavaScript, b"import a from './a.js';\nconst el = <div/>;\n");
+        let js = p.parse(
+            Language::JavaScript,
+            b"import a from './a.js';\nconst el = <div/>;\n",
+        );
         assert_eq!(js.status, ParseStatus::Ok);
         assert_eq!(js.imports.len(), 1);
-        let tsx = p.parse(Language::Tsx, b"import { C } from './c';\nexport const v = <C />;\n");
+        let tsx = p.parse(
+            Language::Tsx,
+            b"import { C } from './c';\nexport const v = <C />;\n",
+        );
         assert_eq!(tsx.status, ParseStatus::Ok);
         assert_eq!(tsx.exports, vec!["v"]);
     }

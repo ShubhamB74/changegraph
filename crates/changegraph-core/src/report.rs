@@ -139,7 +139,11 @@ fn short(sha: &str) -> &str {
 }
 
 fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
-    writeln!(w, "ChangeGraph {} (schema {})", r.tool.version, r.schema_version)?;
+    writeln!(
+        w,
+        "ChangeGraph {} (schema {})",
+        r.tool.version, r.schema_version
+    )?;
     writeln!(w, "Repository: {}", r.repository.root)?;
 
     let c = &r.comparison;
@@ -180,7 +184,12 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
                 old,
                 f.path
             )?,
-            None => writeln!(w, "  {}  {}  [{category}{excluded}]", f.status.letter(), f.path)?,
+            None => writeln!(
+                w,
+                "  {}  {}  [{category}{excluded}]",
+                f.status.letter(),
+                f.path
+            )?,
         }
     }
 
@@ -194,7 +203,11 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     let g = &r.graph;
     let st = &g.stats;
     writeln!(w)?;
-    writeln!(w, "Dependency graph ({}):", crate::dependency_graph::EDGE_SEMANTICS)?;
+    writeln!(
+        w,
+        "Dependency graph ({}):",
+        crate::dependency_graph::EDGE_SEMANTICS
+    )?;
     writeln!(
         w,
         "  {} files, {} internal edges, {} external imports, {} unresolved imports",
@@ -220,7 +233,11 @@ fn render_text<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     if !g.unresolved_imports.is_empty() {
         writeln!(w, "  unresolved imports (not treated as dependencies):")?;
         for u in g.unresolved_imports.iter().take(MAX_UNRESOLVED_SHOWN) {
-            writeln!(w, "    {}:{}  \"{}\"  [{:?}]", u.from, u.line, u.specifier, u.reason)?;
+            writeln!(
+                w,
+                "    {}:{}  \"{}\"  [{:?}]",
+                u.from, u.line, u.specifier, u.reason
+            )?;
         }
         if g.unresolved_imports.len() > MAX_UNRESOLVED_SHOWN {
             writeln!(
@@ -254,7 +271,11 @@ fn render_impact<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
     let im = &r.impact;
     let s = &im.summary;
     writeln!(w)?;
-    writeln!(w, "Impact (reverse dependency traversal; ordering: {}):", im.ordering)?;
+    writeln!(
+        w,
+        "Impact (reverse dependency traversal; ordering: {}):",
+        im.ordering
+    )?;
     if s.changed_files == 0 {
         writeln!(w, "  no analyzable changed files")?;
     } else {
@@ -265,7 +286,11 @@ fn render_impact<W: Write>(r: &Report, w: &mut W) -> std::io::Result<()> {
         )?;
     }
     if let Some(depth) = im.max_depth {
-        let note = if im.depth_limited { " -- TRUNCATED, more dependents exist" } else { "" };
+        let note = if im.depth_limited {
+            " -- TRUNCATED, more dependents exist"
+        } else {
+            ""
+        };
         writeln!(w, "  depth limit: {depth}{note}")?;
     }
     for item in im.affected.iter().take(MAX_SHOWN) {

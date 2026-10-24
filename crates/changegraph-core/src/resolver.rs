@@ -42,7 +42,9 @@ pub enum Resolution {
     /// A file in the analyzed set (repository-relative path).
     Internal(String),
     /// A package or built-in outside the repository.
-    External { package: String },
+    External {
+        package: String,
+    },
     Unresolved(UnresolvedReason),
 }
 
@@ -255,7 +257,10 @@ mod tests {
 
     #[test]
     fn normalize_join_handles_dots_and_escapes() {
-        assert_eq!(normalize_join("src/a", "../b/c").as_deref(), Some("src/b/c"));
+        assert_eq!(
+            normalize_join("src/a", "../b/c").as_deref(),
+            Some("src/b/c")
+        );
         assert_eq!(normalize_join("", "./x").as_deref(), Some("x"));
         assert_eq!(normalize_join("src", "..").as_deref(), Some(""));
         assert_eq!(normalize_join("src", "../.."), None);
@@ -323,11 +328,15 @@ mod tests {
         let r = ModuleResolver::new(&set, None);
         assert_eq!(
             r.resolve("src/x.ts", "react"),
-            Resolution::External { package: "react".into() }
+            Resolution::External {
+                package: "react".into()
+            }
         );
         assert_eq!(
             r.resolve("src/x.ts", "node:fs"),
-            Resolution::External { package: "node:fs".into() }
+            Resolution::External {
+                package: "node:fs".into()
+            }
         );
     }
 
@@ -336,9 +345,18 @@ mod tests {
             base_dir: "src".into(),
             has_base_url: true,
             aliases: vec![
-                PathAlias { pattern: "@lib/*".into(), targets: vec!["lib/*".into()] },
-                PathAlias { pattern: "@lib/special/*".into(), targets: vec!["special/*".into()] },
-                PathAlias { pattern: "config".into(), targets: vec!["settings/config".into()] },
+                PathAlias {
+                    pattern: "@lib/*".into(),
+                    targets: vec!["lib/*".into()],
+                },
+                PathAlias {
+                    pattern: "@lib/special/*".into(),
+                    targets: vec!["special/*".into()],
+                },
+                PathAlias {
+                    pattern: "config".into(),
+                    targets: vec!["settings/config".into()],
+                },
             ],
             has_extends: false,
         }
@@ -350,8 +368,14 @@ mod tests {
         let c = cfg();
         let r = ModuleResolver::new(&set, Some(&c));
         assert_eq!(r.resolve("x.ts", "@lib/a"), internal("src/lib/a.ts"));
-        assert_eq!(r.resolve("x.ts", "@lib/special/b"), internal("src/special/b.ts"));
-        assert_eq!(r.resolve("x.ts", "config"), internal("src/settings/config.ts"));
+        assert_eq!(
+            r.resolve("x.ts", "@lib/special/b"),
+            internal("src/special/b.ts")
+        );
+        assert_eq!(
+            r.resolve("x.ts", "config"),
+            internal("src/settings/config.ts")
+        );
     }
 
     #[test]
@@ -373,7 +397,9 @@ mod tests {
         assert_eq!(r.resolve("x.ts", "utils/x"), internal("src/utils/x.ts"));
         assert_eq!(
             r.resolve("x.ts", "lodash"),
-            Resolution::External { package: "lodash".into() }
+            Resolution::External {
+                package: "lodash".into()
+            }
         );
     }
 }
