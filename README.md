@@ -2,15 +2,16 @@
 
 Local-first, deterministic change-impact analysis for TypeScript/JavaScript repositories, written in Rust.
 
-> **Status: Phase 5 of 8.** The engine validates a Git repository, identifies changed files
+> **Status: Phase 6 of 8.** The engine validates a Git repository, identifies changed files
 > (merge-base or working-tree mode), parses TypeScript/JavaScript with Tree-sitter, resolves
 > imports (relative, `index`, tsconfig `paths`/`baseUrl`) and emits a versioned JSON report
 > containing the dependency graph, unresolved/external imports, cycles and parse coverage.
 > It then computes change impact: direct and transitive dependents of the changed files with
 > explainable import paths, a transparent ranking, deleted/renamed-file handling, and an
 > explicit `uncertain` class. It recommends tests with a per-test explanation, separating known
-> relationships from filename guesses, and says when the selection is incomplete. The visualization,
-> evaluation harness and final docs polish (Phases 6-8) are **not implemented yet**. No LLM is used anywhere in the analysis engine.
+> relationships from filename guesses, and says when the selection is incomplete. An interactive
+> viewer (`frontend/`) explores the JSON report. The evaluation harness and final docs polish
+> (Phases 7-8) are **not implemented yet**. No LLM is used anywhere in the analysis engine.
 
 ## Quick start
 
@@ -40,6 +41,12 @@ CI example: `changegraph analyze . --base origin/main --format json --no-timing 
 (the report is written even when the exit code is 6). A recommended-test list is **not** a guarantee: if
 `test_recommendations.completeness.complete` is `false`, run the full suite.
 
+## Viewer
+
+```bash
+cd frontend && npm install && npm run dev      # opens a bundled sample; open your own report.json in the page
+```
+
 ## Development
 
 ```bash
@@ -60,7 +67,7 @@ The first build generates `Cargo.lock` — commit it.
 | `crates/changegraph-cli` | `changegraph` binary (clap) |
 | `fixtures/` | Fixture projects + hand-labeled expected results |
 | `docs/` | Architecture, algorithms, limitations, report schema |
-| `frontend/` | Placeholder; built in Phase 6 |
+| `frontend/` | Next.js + React Flow viewer for the JSON report (see `frontend/README.md`) |
 
 ## Roadmap
 
@@ -71,7 +78,7 @@ The first build generates `Cargo.lock` — commit it.
 | 3 | Reverse-traversal impact analysis with explainable paths | **written; not yet compiled/tested by the author** |
 | 4 | Test recommendation with known-vs-heuristic distinction | **written; not yet compiled/tested by the author** |
 | 5 | Report/CLI hardening: schema conformance test, atomic output, `--fail-on`, `--compact`, `--no-timing` | **written; not yet compiled/tested by the author** |
-| 6 | Next.js + React Flow visualization | todo |
+| 6 | Next.js + React Flow visualization | **written; logic layer tested, UI components not yet built/run by the author** |
 | 7 | Evaluation harness and benchmarks | todo |
 | 8 | Docs polish, demo, language-support roadmap | todo |
 

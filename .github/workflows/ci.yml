@@ -30,4 +30,24 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
-  # Frontend job is added in Phase 6 (lint + typecheck + build).
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Switch to `npm ci` (and enable the npm cache) once frontend/package-lock.json is committed.
+      - run: npm install
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Logic tests
+        run: npm test
+      - name: Build
+        run: npm run build
