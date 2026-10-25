@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "types": ["node"],
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/lib/**/*.ts"]
+}

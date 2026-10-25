@@ -1,0 +1,371 @@
+{
+  "schema_version": "0.4.0",
+  "tool": {
+    "name": "changegraph",
+    "version": "0.1.0"
+  },
+  "repository": {
+    "root": "/example/simple-ts-project",
+    "head_commit": "0000000000000000000000000000000000000000"
+  },
+  "comparison": {
+    "mode": "working_tree",
+    "base": null,
+    "target": null,
+    "base_commit": null,
+    "target_commit": null,
+    "merge_base_commit": null
+  },
+  "changed_files": [
+    {
+      "path": "src/auth/session.ts",
+      "status": "modified",
+      "category": "source",
+      "excluded": false
+    }
+  ],
+  "discovery": {
+    "total_files": 5,
+    "source_files": 3,
+    "test_files": 2,
+    "exclude_patterns": [
+      ".git",
+      ".next",
+      ".turbo",
+      "build",
+      "coverage",
+      "dist",
+      "node_modules",
+      "out"
+    ]
+  },
+  "graph": {
+    "edge_semantics": "A -> B means module A imports module B",
+    "nodes": [
+      {
+        "path": "src/api/profile.ts",
+        "category": "source",
+        "parse_status": "ok",
+        "exports": [
+          "loadProfile"
+        ]
+      },
+      {
+        "path": "src/auth/session.ts",
+        "category": "source",
+        "parse_status": "ok",
+        "exports": [
+          "Session",
+          "createSession",
+          "isExpired"
+        ]
+      },
+      {
+        "path": "src/index.ts",
+        "category": "source",
+        "parse_status": "ok"
+      },
+      {
+        "path": "tests/profile.test.ts",
+        "category": "test",
+        "parse_status": "ok"
+      },
+      {
+        "path": "tests/session.test.ts",
+        "category": "test",
+        "parse_status": "ok"
+      }
+    ],
+    "edges": [
+      {
+        "from": "src/api/profile.ts",
+        "to": "src/auth/session.ts",
+        "kind": "import",
+        "type_only": false,
+        "specifier": "../auth/session",
+        "line": 1
+      },
+      {
+        "from": "src/index.ts",
+        "to": "src/api/profile.ts",
+        "kind": "re_export",
+        "type_only": false,
+        "specifier": "./api/profile",
+        "line": 1
+      },
+      {
+        "from": "src/index.ts",
+        "to": "src/auth/session.ts",
+        "kind": "re_export_all",
+        "type_only": false,
+        "specifier": "./auth/session",
+        "line": 2
+      },
+      {
+        "from": "tests/profile.test.ts",
+        "to": "src/api/profile.ts",
+        "kind": "import",
+        "type_only": false,
+        "specifier": "../src/api/profile",
+        "line": 1
+      },
+      {
+        "from": "tests/session.test.ts",
+        "to": "src/auth/session.ts",
+        "kind": "import",
+        "type_only": false,
+        "specifier": "../src/auth/session",
+        "line": 1
+      }
+    ],
+    "external_dependencies": [],
+    "unresolved_imports": [],
+    "cycles": [],
+    "stats": {
+      "files": 5,
+      "edges": 5,
+      "external_dependencies": 0,
+      "unresolved_imports": 0,
+      "parsed_ok": 5,
+      "parsed_partial": 0,
+      "parsed_failed": 0,
+      "cycle_count": 0
+    }
+  },
+  "impact": {
+    "max_depth": null,
+    "depth_limited": false,
+    "ordering": "distance asc, changed_dependency_count desc, path asc",
+    "changed": [
+      {
+        "path": "src/auth/session.ts",
+        "status": "modified",
+        "category": "source",
+        "kind": "present",
+        "direct_dependents": 3,
+        "transitive_dependents": 1
+      }
+    ],
+    "affected": [
+      {
+        "rank": 1,
+        "path": "src/api/profile.ts",
+        "category": "source",
+        "classification": "direct",
+        "distance": 1,
+        "changed_dependency_count": 1,
+        "affected_by": [
+          {
+            "changed_file": "src/auth/session.ts",
+            "distance": 1
+          }
+        ],
+        "path_from_changed": [
+          "src/auth/session.ts",
+          "src/api/profile.ts"
+        ],
+        "hops": [
+          {
+            "importer": "src/api/profile.ts",
+            "imported": "src/auth/session.ts",
+            "kind": "import",
+            "type_only": false,
+            "specifier": "../auth/session",
+            "line": 1
+          }
+        ],
+        "explanation": "Direct dependent of changed file src/auth/session.ts: src/api/profile.ts imports \"../auth/session\" at line 1."
+      },
+      {
+        "rank": 2,
+        "path": "src/index.ts",
+        "category": "source",
+        "classification": "direct",
+        "distance": 1,
+        "changed_dependency_count": 1,
+        "affected_by": [
+          {
+            "changed_file": "src/auth/session.ts",
+            "distance": 1
+          }
+        ],
+        "path_from_changed": [
+          "src/auth/session.ts",
+          "src/index.ts"
+        ],
+        "hops": [
+          {
+            "importer": "src/index.ts",
+            "imported": "src/auth/session.ts",
+            "kind": "re_export_all",
+            "type_only": false,
+            "specifier": "./auth/session",
+            "line": 2
+          }
+        ],
+        "explanation": "Direct dependent of changed file src/auth/session.ts: src/index.ts imports \"./auth/session\" at line 2."
+      },
+      {
+        "rank": 3,
+        "path": "tests/session.test.ts",
+        "category": "test",
+        "classification": "direct",
+        "distance": 1,
+        "changed_dependency_count": 1,
+        "affected_by": [
+          {
+            "changed_file": "src/auth/session.ts",
+            "distance": 1
+          }
+        ],
+        "path_from_changed": [
+          "src/auth/session.ts",
+          "tests/session.test.ts"
+        ],
+        "hops": [
+          {
+            "importer": "tests/session.test.ts",
+            "imported": "src/auth/session.ts",
+            "kind": "import",
+            "type_only": false,
+            "specifier": "../src/auth/session",
+            "line": 1
+          }
+        ],
+        "explanation": "Direct dependent of changed file src/auth/session.ts: tests/session.test.ts imports \"../src/auth/session\" at line 1."
+      },
+      {
+        "rank": 4,
+        "path": "tests/profile.test.ts",
+        "category": "test",
+        "classification": "transitive",
+        "distance": 2,
+        "changed_dependency_count": 1,
+        "affected_by": [
+          {
+            "changed_file": "src/auth/session.ts",
+            "distance": 2
+          }
+        ],
+        "path_from_changed": [
+          "src/auth/session.ts",
+          "src/api/profile.ts",
+          "tests/profile.test.ts"
+        ],
+        "hops": [
+          {
+            "importer": "src/api/profile.ts",
+            "imported": "src/auth/session.ts",
+            "kind": "import",
+            "type_only": false,
+            "specifier": "../auth/session",
+            "line": 1
+          },
+          {
+            "importer": "tests/profile.test.ts",
+            "imported": "src/api/profile.ts",
+            "kind": "import",
+            "type_only": false,
+            "specifier": "../src/api/profile",
+            "line": 1
+          }
+        ],
+        "explanation": "Transitive dependent of changed file src/auth/session.ts at distance 2: tests/profile.test.ts imports \"../src/api/profile\" at line 1; src/api/profile.ts imports \"../auth/session\" at line 1."
+      }
+    ],
+    "uncertain": [],
+    "ignored_changed_files": [],
+    "summary": {
+      "changed_files": 1,
+      "affected": 4,
+      "direct": 3,
+      "transitive": 1,
+      "affected_tests": 2,
+      "uncertain": 0
+    }
+  },
+  "test_recommendations": {
+    "coverage_map": null,
+    "ordering": "known basis first; then changed tests, graph-confirmed tests by distance to the nearest changed module, coverage-map-only tests, heuristic-only tests; then more covered modules; then path",
+    "recommendations": [
+      {
+        "rank": 1,
+        "path": "tests/session.test.ts",
+        "basis": "known",
+        "methods": [
+          "direct_import"
+        ],
+        "min_distance": 1,
+        "covers": [
+          {
+            "module": "src/auth/session.ts",
+            "module_status": "changed",
+            "method": "direct_import",
+            "distance": 1,
+            "detail": "imports \"../src/auth/session\" at line 1"
+          }
+        ],
+        "explanation": "Known relationship: depends on 1 changed/affected module(s); closest: src/auth/session.ts (direct import)."
+      },
+      {
+        "rank": 2,
+        "path": "tests/profile.test.ts",
+        "basis": "known",
+        "methods": [
+          "direct_import",
+          "dependency_reachability"
+        ],
+        "min_distance": 2,
+        "covers": [
+          {
+            "module": "src/api/profile.ts",
+            "module_status": "affected",
+            "method": "direct_import",
+            "distance": 1,
+            "detail": "imports \"../src/api/profile\" at line 1"
+          },
+          {
+            "module": "src/auth/session.ts",
+            "module_status": "changed",
+            "method": "dependency_reachability",
+            "distance": 2,
+            "via": "src/api/profile.ts",
+            "detail": "reaches it through src/api/profile.ts (2 imports)"
+          }
+        ],
+        "explanation": "Known relationship: depends on 2 changed/affected module(s); closest: src/api/profile.ts (direct import)."
+      }
+    ],
+    "unmapped_modules": [
+      {
+        "path": "src/index.ts",
+        "status": "affected",
+        "heuristic_tests": []
+      }
+    ],
+    "completeness": {
+      "complete": false,
+      "reasons": [
+        {
+          "kind": "unmapped_modules",
+          "detail": "1 impacted source module(s) have no test linked by a known method (e.g. src/index.ts); their tests may not be in this list"
+        }
+      ]
+    },
+    "summary": {
+      "total_test_files": 2,
+      "recommended": 2,
+      "known_basis": 2,
+      "heuristic_only": 0
+    }
+  },
+  "warnings": [
+    {
+      "code": "test_selection_incomplete",
+      "message": "test selection is incomplete (UnmappedModules); do not treat the recommended list as the full set of tests to run"
+    }
+  ],
+  "execution": {
+    "duration_ms": 12
+  }
+}

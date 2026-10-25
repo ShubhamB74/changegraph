@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink font-sans text-ink-text antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid #7fb2ff;
+  outline-offset: 2px;
+}
+
+/* React Flow chrome, matched to the palette. */
+.react-flow {
+  background: #0e131a;
+}
+.react-flow__attribution {
+  background: transparent !important;
+}
+.react-flow__controls button {
+  background: #1b2431;
+  border-bottom: 1px solid #283345;
+  color: #ddE5f1;
+  fill: #dde5f1;
+}
+.react-flow__controls button:hover {
+  background: #283345;
+}
+.react-flow__node:focus-visible {
+  outline: 2px solid #7fb2ff;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
