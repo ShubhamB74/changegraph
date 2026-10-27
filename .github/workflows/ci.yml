@@ -51,3 +51,16 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  docs:
+    name: Documentation and scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Markdown links resolve and every docs page is indexed
+        run: node scripts/check-doc-links.mjs
+      - name: Script and collector tests
+        run: node --test "scripts/*.test.mjs" "eval/historical/*.test.mjs"

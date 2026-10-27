@@ -2,17 +2,17 @@
 
 Local-first, deterministic change-impact analysis for TypeScript/JavaScript repositories, written in Rust.
 
-> **Status: Phase 7 of 8.** The engine validates a Git repository, identifies changed files
-> (merge-base or working-tree mode), parses TypeScript/JavaScript with Tree-sitter, resolves
-> imports (relative, `index`, tsconfig `paths`/`baseUrl`) and emits a versioned JSON report
-> containing the dependency graph, unresolved/external imports, cycles and parse coverage.
-> It then computes change impact: direct and transitive dependents of the changed files with
-> explainable import paths, a transparent ranking, deleted/renamed-file handling, and an
-> explicit `uncertain` class. It recommends tests with a per-test explanation, separating known
-> relationships from filename guesses, and says when the selection is incomplete. An interactive
-> viewer (`frontend/`) explores the JSON report. An evaluation harness (`changegraph-eval`)
-> measures accuracy, test-selection quality, runtime and memory; **no measured results are recorded yet**
-> (see `docs/evaluation.md`). Final docs polish (Phase 8) is not done. No LLM is used anywhere in the analysis engine.
+> **Status: all eight phases are written.** Verification varies by part; read the roadmap table below and
+> `docs/limitations.md`. **No accuracy or performance numbers are recorded yet**: the evaluation harness
+> exists (`docs/evaluation.md`) but its results have not been collected. No LLM is used anywhere in the
+> analysis engine.
+
+**What it does.** It compares your Git changes with a base revision, parses TypeScript/JavaScript with
+Tree-sitter, builds a file-level import graph, and reports which files and tests a change can affect, *why*
+(the exact import chain), and what the analysis could not see. It recommends tests with a per-test
+explanation, separating confirmed relationships from filename guesses, and says when the selection is
+incomplete. An interactive viewer (`frontend/`) explores the JSON report. It is a static-import analysis,
+not a proof: a recommendation never guarantees that a test will catch a regression.
 
 ## Quick start
 
@@ -71,6 +71,14 @@ Requires stable Rust (pinned via `rust-toolchain.toml`; `Option::is_none_or` nee
 (Tree-sitter grammars are compiled by `cc`) and `git` on `PATH`.
 The first build generates `Cargo.lock` — commit it.
 
+## Documentation
+
+Start at [docs/index.md](docs/index.md). Highlights: [supported syntax](docs/supported-syntax.md),
+[limitations](docs/limitations.md), [architecture and why Rust](docs/architecture.md),
+[evaluation method](docs/evaluation.md), [roadmap](docs/roadmap.md), [contributing](CONTRIBUTING.md).
+
+Try it on the bundled fixture: `scripts/demo.sh` ([walkthrough](docs/demo.md)).
+
 ## Layout
 
 | Path | Purpose |
@@ -94,6 +102,6 @@ The first build generates `Cargo.lock` — commit it.
 | 5 | Report/CLI hardening: schema conformance test, atomic output, `--fail-on`, `--compact`, `--no-timing` | **written; not yet compiled/tested by the author** |
 | 6 | Next.js + React Flow visualization | **written; logic layer tested, UI components not yet built/run by the author** |
 | 7 | Evaluation harness and benchmarks | **written; not yet compiled/run by the author; no results recorded** |
-| 8 | Docs polish, demo, language-support roadmap | todo |
+| 8 | Docs, demo script, contributor workflow, doc-link check, golden sample test, language roadmap | **written; screenshots not produced** |
 
 See [docs/limitations.md](docs/limitations.md) for what the tool does *not* claim.
