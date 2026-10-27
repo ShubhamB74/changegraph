@@ -1,0 +1,62 @@
+{
+  "scenarios": [
+    {
+      "name": "simple: modify a leaf module (direct, transitive and re-export dependents)",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "modify", "path": "src/auth/session.ts", "append": "\n// edit\n" }],
+      "labels": {
+        "affected": ["src/api/profile.ts", "src/index.ts", "tests/profile.test.ts", "tests/session.test.ts"],
+        "relevant_tests": ["tests/profile.test.ts", "tests/session.test.ts"],
+        "uncertain": []
+      }
+    },
+    {
+      "name": "simple: modify a mid-level module (unrelated session code stays unaffected)",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "modify", "path": "src/api/profile.ts", "append": "\n// edit\n" }],
+      "labels": {
+        "affected": ["src/index.ts", "tests/profile.test.ts"],
+        "relevant_tests": ["tests/profile.test.ts"],
+        "uncertain": []
+      }
+    },
+    {
+      "name": "simple: modify only a test file",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "modify", "path": "tests/session.test.ts", "append": "\n// edit\n" }],
+      "labels": { "affected": [], "relevant_tests": ["tests/session.test.ts"], "uncertain": [] }
+    },
+    {
+      "name": "simple: modify a module that nothing imports",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "modify", "path": "src/index.ts", "append": "\n// edit\n" }],
+      "labels": { "affected": [], "relevant_tests": [], "uncertain": [], "note": "No test reaches index.ts; a good tool says so instead of staying silent." }
+    },
+    {
+      "name": "simple: delete a depended-on file",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "delete", "path": "src/auth/session.ts" }],
+      "labels": {
+        "affected": ["src/api/profile.ts", "src/index.ts", "tests/profile.test.ts", "tests/session.test.ts"],
+        "relevant_tests": ["tests/profile.test.ts", "tests/session.test.ts"],
+        "uncertain": []
+      }
+    },
+    {
+      "name": "simple: rename a depended-on file without updating its importers",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "rename", "from": "src/auth/session.ts", "to": "src/auth/session-v2.ts" }],
+      "labels": {
+        "affected": ["src/api/profile.ts", "src/index.ts", "tests/profile.test.ts", "tests/session.test.ts"],
+        "relevant_tests": ["tests/profile.test.ts", "tests/session.test.ts"],
+        "uncertain": []
+      }
+    },
+    {
+      "name": "simple: add a brand-new unrelated file",
+      "fixture": "fixtures/simple-ts-project",
+      "changes": [{ "op": "create", "path": "src/unrelated/helper.ts", "content": "export const helper = 1;\n" }],
+      "labels": { "affected": [], "relevant_tests": [], "uncertain": [] }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "scenarios": [
+    {
+      "name": "edge: change inside an import cycle (src/broken.ts has a syntax error)",
+      "fixture": "fixtures/edge-cases-project",
+      "changes": [{ "op": "modify", "path": "src/cycle/a.ts", "append": "\n// edit\n" }],
+      "labels": {
+        "affected": ["src/cycle/b.ts", "src/main.ts"],
+        "relevant_tests": [],
+        "uncertain": ["src/broken.ts"],
+        "note": "src/broken.ts only has a partial parse, so it is uncertain rather than affected or safe."
+      }
+    },
+    {
+      "name": "edge: change reached through re-exports and a JS-extension import (broken file excluded)",
+      "fixture": "fixtures/edge-cases-project",
+      "exclude": ["src/broken.ts"],
+      "changes": [{ "op": "modify", "path": "src/lib/util.ts", "append": "\n// edit\n" }],
+      "labels": {
+        "affected": ["src/lib/index.ts", "src/main.ts", "tests/main.test.ts"],
+        "relevant_tests": ["tests/main.test.ts"],
+        "uncertain": []
+      }
+    },
+    {
+      "name": "edge: change reached only through a type-only import",
+      "fixture": "fixtures/edge-cases-project",
+      "changes": [{ "op": "modify", "path": "src/types/index.ts", "append": "\n// edit\n" }],
+      "labels": { "affected": ["src/main.ts"], "relevant_tests": [], "uncertain": ["src/broken.ts"] }
+    },
+    {
+      "name": "edge: change reached only through a side-effect import",
+      "fixture": "fixtures/edge-cases-project",
+      "changes": [{ "op": "modify", "path": "src/side-effect.ts", "append": "\n// edit\n" }],
+      "labels": { "affected": ["src/main.ts"], "relevant_tests": [], "uncertain": ["src/broken.ts"] }
+    },
+    {
+      "name": "edge: change reached through a tsconfig path alias",
+      "fixture": "fixtures/edge-cases-project",
+      "exclude": ["src/broken.ts"],
+      "changes": [{ "op": "modify", "path": "src/lib/format.ts", "append": "\n// edit\n" }],
+      "labels": {
+        "affected": ["src/lib/index.ts", "src/main.ts"],
+        "relevant_tests": [],
+        "uncertain": []
+      }
+    },
+    {
+      "name": "edge: change the file with the syntax error (files with unresolved imports become uncertain)",
+      "fixture": "fixtures/edge-cases-project",
+      "changes": [{ "op": "modify", "path": "src/broken.ts", "append": "\n// edit\n" }],
+      "labels": { "affected": [], "relevant_tests": [], "uncertain": ["src/main.ts"] }
+    },
+    {
+      "name": "edge: changes confined to excluded directories",
+      "fixture": "fixtures/edge-cases-project",
+      "extra_files": {
+        "node_modules/pkg/index.js": "module.exports = {};\n",
+        "dist/bundle.js": "console.log(1);\n"
+      },
+      "changes": [
+        { "op": "modify", "path": "node_modules/pkg/index.js", "append": "// edit\n" },
+        { "op": "modify", "path": "dist/bundle.js", "append": "// edit\n" }
+      ],
+      "labels": { "affected": [], "relevant_tests": [], "uncertain": [] }
+    }
+  ]
+}

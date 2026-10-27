@@ -2,7 +2,9 @@
 
 **Current (Phase 1)**
 
-- **Test recommendations are not validated empirically yet** (Phase 7). The ranking and the
+- **Test recommendations have not been validated empirically.** The harness to do so exists
+  (`docs/evaluation.md`) but no results are recorded; the scenario and synthetic experiments only
+  check agreement with labels and with generated truth. The ranking and the
   reachability relation are unmeasured heuristics; do not use the list to *skip* tests.
 - Test files are recognised by name only (`*.test.*`, `*.spec.*`, `__tests__/`); a test with
   another name is treated as ordinary source.
@@ -56,3 +58,12 @@
 - Dependency reachability or filename similarity does not prove a test catches a regression.
 - Impact rankings are heuristics, not probabilities. Safe test omission requires empirical
   validation (Phase 7) and is not promised.
+
+**Evaluation harness**
+
+- Scenario labels were written by the tool's authors for small fixture projects.
+- Synthetic repositories are clean, acyclic and use a single import style; perfect scores there
+  demonstrate correctness on well-formed input, not generalisation.
+- Peak-memory measurement is Unix-only; elsewhere it is reported as unavailable.
+- Historical datasets must be collected by running a project's real tests; flakiness and commit
+  selection bias are threats that the harness documents but cannot remove.
