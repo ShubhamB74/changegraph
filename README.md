@@ -2,11 +2,6 @@
 
 Local-first, deterministic change-impact analysis for TypeScript/JavaScript repositories, written in Rust.
 
-> **Status: all eight phases are written.** Verification varies by part; read the roadmap table below and
-> `docs/limitations.md`. **No accuracy or performance numbers are recorded yet**: the evaluation harness
-> exists (`docs/evaluation.md`) but its results have not been collected. No LLM is used anywhere in the
-> analysis engine.
-
 **What it does.** It compares your Git changes with a base revision, parses TypeScript/JavaScript with
 Tree-sitter, builds a file-level import graph, and reports which files and tests a change can affect, *why*
 (the exact import chain), and what the analysis could not see. It recommends tests with a per-test
@@ -90,18 +85,3 @@ Try it on the bundled fixture: `scripts/demo.sh` ([walkthrough](docs/demo.md)).
 | `fixtures/` | Fixture projects + hand-labeled expected results |
 | `docs/` | Architecture, algorithms, limitations, report schema |
 | `frontend/` | Next.js + React Flow viewer for the JSON report (see `frontend/README.md`) |
-
-## Roadmap
-
-| Phase | Scope | State |
-|-------|-------|-------|
-| 1 | Repo validation, git diff, discovery, JSON report, CLI | **written; not yet compiled/tested by the author** |
-| 2 | Tree-sitter import/export extraction, resolution, graph | **written; not yet compiled/tested by the author** |
-| 3 | Reverse-traversal impact analysis with explainable paths | **written; not yet compiled/tested by the author** |
-| 4 | Test recommendation with known-vs-heuristic distinction | **written; not yet compiled/tested by the author** |
-| 5 | Report/CLI hardening: schema conformance test, atomic output, `--fail-on`, `--compact`, `--no-timing` | **written; not yet compiled/tested by the author** |
-| 6 | Next.js + React Flow visualization | **written; logic layer tested, UI components not yet built/run by the author** |
-| 7 | Evaluation harness and benchmarks | **written; not yet compiled/run by the author; no results recorded** |
-| 8 | Docs, demo script, contributor workflow, doc-link check, golden sample test, language roadmap | **written; screenshots not produced** |
-
-See [docs/limitations.md](docs/limitations.md) for what the tool does *not* claim.
