@@ -2,7 +2,7 @@
 
 Local-first, deterministic change-impact analysis for TypeScript/JavaScript repositories, written in Rust.
 
-> **Status: Phase 6 of 8.** The engine validates a Git repository, identifies changed files
+> **Status: Phase 7 of 8.** The engine validates a Git repository, identifies changed files
 > (merge-base or working-tree mode), parses TypeScript/JavaScript with Tree-sitter, resolves
 > imports (relative, `index`, tsconfig `paths`/`baseUrl`) and emits a versioned JSON report
 > containing the dependency graph, unresolved/external imports, cycles and parse coverage.
@@ -10,8 +10,9 @@ Local-first, deterministic change-impact analysis for TypeScript/JavaScript repo
 > explainable import paths, a transparent ranking, deleted/renamed-file handling, and an
 > explicit `uncertain` class. It recommends tests with a per-test explanation, separating known
 > relationships from filename guesses, and says when the selection is incomplete. An interactive
-> viewer (`frontend/`) explores the JSON report. The evaluation harness and final docs polish
-> (Phases 7-8) are **not implemented yet**. No LLM is used anywhere in the analysis engine.
+> viewer (`frontend/`) explores the JSON report. An evaluation harness (`changegraph-eval`)
+> measures accuracy, test-selection quality, runtime and memory; **no measured results are recorded yet**
+> (see `docs/evaluation.md`). Final docs polish (Phase 8) is not done. No LLM is used anywhere in the analysis engine.
 
 ## Quick start
 
@@ -47,6 +48,17 @@ CI example: `changegraph analyze . --base origin/main --format json --no-timing 
 cd frontend && npm install && npm run dev      # opens a bundled sample; open your own report.json in the page
 ```
 
+## Evaluation
+
+```bash
+cargo build --release -p changegraph-cli -p changegraph-eval
+./target/release/changegraph-eval scenarios
+./target/release/changegraph-eval synthetic --sizes 100,1000
+./target/release/changegraph-eval bench --sizes 100,1000,5000
+```
+
+What each experiment does and does not show: [docs/evaluation.md](docs/evaluation.md).
+
 ## Development
 
 ```bash
@@ -65,6 +77,8 @@ The first build generates `Cargo.lock` — commit it.
 |------|---------|
 | `crates/changegraph-core` | Engine: repository validation, git diff, discovery, report |
 | `crates/changegraph-cli` | `changegraph` binary (clap) |
+| `crates/changegraph-eval` | Evaluation/benchmark harness (labeled scenarios, synthetic ground truth, bench, historical) |
+| `eval/` | Scenario labels, historical-dataset tooling, recorded results |
 | `fixtures/` | Fixture projects + hand-labeled expected results |
 | `docs/` | Architecture, algorithms, limitations, report schema |
 | `frontend/` | Next.js + React Flow viewer for the JSON report (see `frontend/README.md`) |
@@ -79,7 +93,7 @@ The first build generates `Cargo.lock` — commit it.
 | 4 | Test recommendation with known-vs-heuristic distinction | **written; not yet compiled/tested by the author** |
 | 5 | Report/CLI hardening: schema conformance test, atomic output, `--fail-on`, `--compact`, `--no-timing` | **written; not yet compiled/tested by the author** |
 | 6 | Next.js + React Flow visualization | **written; logic layer tested, UI components not yet built/run by the author** |
-| 7 | Evaluation harness and benchmarks | todo |
+| 7 | Evaluation harness and benchmarks | **written; not yet compiled/run by the author; no results recorded** |
 | 8 | Docs polish, demo, language-support roadmap | todo |
 
 See [docs/limitations.md](docs/limitations.md) for what the tool does *not* claim.
