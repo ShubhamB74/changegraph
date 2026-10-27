@@ -67,6 +67,26 @@ records, or from recorded test outcomes; the engine is never used to produce its
 **Planned modules** (not present yet, deliberately): none. A separate
 `symbols` module was folded into `parser` (local export names) until symbol-level analysis is needed.
 
-**Why Rust:** deterministic, fast whole-repo parsing and graph traversal in a single static
-binary with no runtime dependency. Complexity is justified in the parser/graph/impact core; it
-is not justified elsewhere, which is why the frontend stays a thin JSON consumer.
+## Why Rust, and where the complexity is (and is not) justified
+
+**What the choice buys.** The engine is a command-line tool that must run locally on a developer's repository,
+fast enough to sit in an inner loop or a CI job, and give the same answer every time. Rust gives a single static
+binary with no runtime to install, memory safety without a garbage-collector pause, predictable data layout for
+graphs with tens of thousands of nodes, and a type system that makes states such as "resolved / external /
+unresolved" and "known / heuristic" impossible to confuse (they are enums, and the compiler checks every match).
+Tree-sitter's core is a C library with first-class Rust bindings, which suits whole-repository parsing.
+
+**What it costs.** Slower iteration than a TypeScript implementation, a C compiler in the build, and a smaller pool
+of contributors. A TypeScript tool could reuse the TypeScript compiler API and get *semantic* module resolution
+(project references, `exports` maps, type-aware re-exports) that this engine deliberately does not attempt. That is a real
+trade-off: accuracy on exotic setups is traded for speed, determinism and distribution.
+
+**Not yet demonstrated.** "Fast" and "low memory" are design intent, not findings. No benchmark results are
+recorded; `changegraph-eval bench` exists to produce them (`docs/evaluation.md`). If the numbers show that a
+simpler implementation would do, this section should say so.
+
+**Where the complexity is earned.** Parsing, module resolution, the graph (forward and reverse adjacency, cycle
+detection, shortest-path reverse traversal), impact analysis and test mapping are the product, and they benefit from
+types, determinism and speed. **Where it is not:** the viewer is a thin JSON consumer in the ecosystem best suited
+to interactive UI, and the evaluation harness is plain Rust only because it shares the engine's types. There is no
+server, database or plugin system, because nothing has demonstrated a need for one.

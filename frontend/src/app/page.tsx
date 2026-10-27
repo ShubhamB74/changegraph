@@ -132,7 +132,7 @@ export default function Page() {
             <p className="truncate">{describeComparison(model.report)}</p>
             <p className="truncate text-xs text-ink-dim">
               {loaded.bundled
-                ? "Bundled sample, assembled by hand from fixtures/simple-ts-project; it was not produced by the analyzer."
+                ? "Bundled sample for fixtures/simple-ts-project (path and commit are placeholders); `cargo test golden` checks it against the analyzer's real output."
                 : `${loaded.label} · changegraph ${model.report.tool.version} · schema ${model.report.schema_version}`}
             </p>
           </div>

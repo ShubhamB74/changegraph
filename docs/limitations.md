@@ -1,5 +1,7 @@
 # Known limitations
 
+For exactly which syntax and configuration is understood, see [supported-syntax.md](supported-syntax.md).
+
 **Current (Phase 1)**
 
 - **Test recommendations have not been validated empirically.** The harness to do so exists

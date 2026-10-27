@@ -59,14 +59,18 @@ any path, including files outside the current scope.
 
 ## The bundled sample
 
-`public/sample-report.json` is **hand-assembled** from the labeled expectations for
-`fixtures/simple-ts-project` (graph, impact, tests) because it was written without a Rust toolchain.
-The UI says so in the header. Replace it with real engine output:
+`public/sample-report.json` is the analyzer's report for `fixtures/simple-ts-project` after a comment is
+appended to `src/auth/session.ts` (timing disabled; the repository path and commit are placeholders).
+The Rust test `golden` (`crates/changegraph-core/tests/golden.rs`) rebuilds that scenario with the
+real analyzer and fails if the committed file differs. Regenerate it after an intended output change:
 
 ```bash
-npm run sample      # runs the real analyzer on a scratch copy of the fixture
-npm test            # confirms the viewer accepts the real report
+UPDATE_GOLDEN=1 cargo test -p changegraph-core --test golden   # then review the diff
+npm test                                                       # the viewer must still accept it
 ```
+
+Until the Rust tests have been run once, treat the file as hand-assembled from the fixture's labeled
+expectations: it has not yet been checked against real output.
 
 ## Checks
 
