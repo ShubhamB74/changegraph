@@ -7,7 +7,14 @@ use crate::scenario::{ScenarioAggregate, ScenarioResult};
 use crate::synthetic_eval::SyntheticResult;
 
 fn pr(s: &Score) -> String {
-    format!("P={} R={} (tp={} fp={} fn={})", fmt_opt(s.precision), fmt_opt(s.recall), s.tp, s.fp, s.fn_)
+    format!(
+        "P={} R={} (tp={} fp={} fn={})",
+        fmt_opt(s.precision),
+        fmt_opt(s.recall),
+        s.tp,
+        s.fp,
+        s.fn_
+    )
 }
 
 pub fn scenarios(results: &[ScenarioResult], agg: &ScenarioAggregate) -> String {
@@ -17,10 +24,16 @@ pub fn scenarios(results: &[ScenarioResult], agg: &ScenarioAggregate) -> String 
         out.push_str(&format!("* {}\n", r.name));
         out.push_str(&format!("    affected      {}\n", pr(&r.affected)));
         if !r.missing_affected.is_empty() {
-            out.push_str(&format!("      missing:    {}\n", r.missing_affected.join(", ")));
+            out.push_str(&format!(
+                "      missing:    {}\n",
+                r.missing_affected.join(", ")
+            ));
         }
         if !r.unexpected_affected.is_empty() {
-            out.push_str(&format!("      unexpected: {}\n", r.unexpected_affected.join(", ")));
+            out.push_str(&format!(
+                "      unexpected: {}\n",
+                r.unexpected_affected.join(", ")
+            ));
         }
         out.push_str(&format!("    tests (known) {}\n", pr(&r.tests_known)));
         out.push_str(&format!("    tests (all)   {}\n", pr(&r.tests_all)));
@@ -57,15 +70,31 @@ pub fn scenarios(results: &[ScenarioResult], agg: &ScenarioAggregate) -> String 
 }
 
 pub fn synthetic(results: &[SyntheticResult]) -> String {
-    let mut out = String::from("SYNTHETIC REPOSITORIES (exact ground truth by construction; clean syntax, DAG imports)\n");
+    let mut out = String::from(
+        "SYNTHETIC REPOSITORIES (exact ground truth by construction; clean syntax, DAG imports)\n",
+    );
     for r in results {
         out.push_str(&format!(
             "\n{} files (seed {}): {} modules, {} tests, {} true edges, parsed cleanly {}\n",
-            r.files, r.seed, r.modules, r.tests, r.true_edges, fmt_opt(r.parse_clean_share)
+            r.files,
+            r.seed,
+            r.modules,
+            r.tests,
+            r.true_edges,
+            fmt_opt(r.parse_clean_share)
         ));
-        out.push_str(&format!("    extraction edges      {}\n", pr(&r.extraction_edges)));
-        out.push_str(&format!("    extraction external   {}\n", pr(&r.extraction_external)));
-        out.push_str(&format!("    extraction unresolved {}\n", pr(&r.extraction_unresolved)));
+        out.push_str(&format!(
+            "    extraction edges      {}\n",
+            pr(&r.extraction_edges)
+        ));
+        out.push_str(&format!(
+            "    extraction external   {}\n",
+            pr(&r.extraction_external)
+        ));
+        out.push_str(&format!(
+            "    extraction unresolved {}\n",
+            pr(&r.extraction_unresolved)
+        ));
         for t in &r.targets {
             out.push_str(&format!(
                 "    change {}: truth affected {}, impact {}, distances exact {}/{}, tests(known) {}, reduction {}, engine {} ms\n",
@@ -99,7 +128,8 @@ pub fn bench(results: &[BenchResult]) -> String {
             r.graph_files,
             r.graph_edges,
             wall,
-            r.max_rss_mib.map_or("n/a".to_string(), |m| format!("{m:.1}")),
+            r.max_rss_mib
+                .map_or("n/a".to_string(), |m| format!("{m:.1}")),
             r.engine_ms.map_or("n/a".to_string(), |m| m.to_string()),
             r.report_bytes as f64 / (1024.0 * 1024.0),
             r.affected
@@ -120,7 +150,11 @@ pub fn historical(r: &HistoricalResult) -> String {
             c.id, c.recommended, c.total_test_files, fmt_opt(c.reduction), c.failing, c.found, c.found_known, c.selection_complete
         ));
         for m in &c.missed {
-            let why = if c.missed_unrecognized.contains(m) { " (not recognised as a test file by the tool)" } else { "" };
+            let why = if c.missed_unrecognized.contains(m) {
+                " (not recognised as a test file by the tool)"
+            } else {
+                ""
+            };
             out.push_str(&format!("      MISSED {m}{why}\n"));
         }
     }

@@ -88,7 +88,11 @@ fn warn_if_debug() {
 
 fn run(cli: Cli) -> Result<()> {
     match cli.command {
-        Command::Scenarios { dir, repo_root, json } => {
+        Command::Scenarios {
+            dir,
+            repo_root,
+            json,
+        } => {
             let scenarios = scenario::load_scenarios(&dir)?;
             let mut results = Vec::new();
             for s in &scenarios {
@@ -101,7 +105,14 @@ fn run(cli: Cli) -> Result<()> {
                 scenarios: &'a [scenario::ScenarioResult],
                 aggregate: &'a scenario::ScenarioAggregate,
             }
-            write_json(&json, "scenarios", &Out { scenarios: &results, aggregate: &agg })
+            write_json(
+                &json,
+                "scenarios",
+                &Out {
+                    scenarios: &results,
+                    aggregate: &agg,
+                },
+            )
         }
         Command::Synthetic { sizes, seed, json } => {
             let mut results = Vec::new();
@@ -111,7 +122,13 @@ fn run(cli: Cli) -> Result<()> {
             print!("{}", render::synthetic(&results));
             write_json(&json, "synthetic", &results)
         }
-        Command::Bench { sizes, runs, seed, changegraph_bin, json } => {
+        Command::Bench {
+            sizes,
+            runs,
+            seed,
+            changegraph_bin,
+            json,
+        } => {
             warn_if_debug();
             let bin = changegraph_bin.unwrap_or_else(default_bin);
             if !bin.to_string_lossy().contains("release") {
@@ -120,7 +137,12 @@ fn run(cli: Cli) -> Result<()> {
                     bin.display()
                 );
             }
-            let results = run_bench(&BenchSpec { sizes, runs, seed, bin })?;
+            let results = run_bench(&BenchSpec {
+                sizes,
+                runs,
+                seed,
+                bin,
+            })?;
             print!("{}", render::bench(&results));
             write_json(&json, "bench", &results)
         }

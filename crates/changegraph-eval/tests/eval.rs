@@ -17,7 +17,11 @@ fn repo_root() -> PathBuf {
 #[test]
 fn labeled_scenarios_agree_with_the_tool() {
     let scenarios = load_scenarios(&repo_root().join("eval/scenarios")).unwrap();
-    assert!(scenarios.len() >= 10, "expected the committed scenario set, found {}", scenarios.len());
+    assert!(
+        scenarios.len() >= 10,
+        "expected the committed scenario set, found {}",
+        scenarios.len()
+    );
 
     let mut results = Vec::new();
     let mut failures = Vec::new();
@@ -30,11 +34,17 @@ fn labeled_scenarios_agree_with_the_tool() {
             ));
         }
         if !r.tests_known.counts().is_exact() {
-            failures.push(format!("{}: known-basis tests differ from labels: {:?}", r.name, r.tests_known));
+            failures.push(format!(
+                "{}: known-basis tests differ from labels: {:?}",
+                r.name, r.tests_known
+            ));
         }
         if let Some(u) = &r.uncertain {
             if !u.counts().is_exact() {
-                failures.push(format!("{}: uncertain set differs from labels: {:?}", r.name, u));
+                failures.push(format!(
+                    "{}: uncertain set differs from labels: {:?}",
+                    r.name, u
+                ));
             }
         }
         results.push(r);
@@ -43,7 +53,10 @@ fn labeled_scenarios_agree_with_the_tool() {
 
     let agg = aggregate(&results);
     assert_eq!(agg.exact_affected, agg.scenarios);
-    assert!(agg.affected.tp > 10, "the scenario set should exercise real dependents");
+    assert!(
+        agg.affected.tp > 10,
+        "the scenario set should exercise real dependents"
+    );
 }
 
 #[test]
@@ -51,17 +64,51 @@ fn synthetic_ground_truth_is_matched_exactly() {
     for (files, seed) in [(150, 1), (400, 7)] {
         let r = evaluate(&SyntheticSpec::new(files, seed)).unwrap();
         // Guard against a vacuous pass.
-        assert!(r.true_edges > files / 2, "{} edges for {} files", r.true_edges, files);
+        assert!(
+            r.true_edges > files / 2,
+            "{} edges for {} files",
+            r.true_edges,
+            files
+        );
         assert!(r.targets[0].truth_affected > 0);
 
-        assert!(r.extraction_edges.counts().is_exact(), "{files} files: edges {:?}", r.extraction_edges);
-        assert!(r.extraction_external.counts().is_exact(), "{files} files: external {:?}", r.extraction_external);
-        assert!(r.extraction_unresolved.counts().is_exact(), "{files} files: unresolved {:?}", r.extraction_unresolved);
-        assert!(r.extraction_unresolved.tp > 0 || files < 100, "unresolved imports should be exercised");
+        assert!(
+            r.extraction_edges.counts().is_exact(),
+            "{files} files: edges {:?}",
+            r.extraction_edges
+        );
+        assert!(
+            r.extraction_external.counts().is_exact(),
+            "{files} files: external {:?}",
+            r.extraction_external
+        );
+        assert!(
+            r.extraction_unresolved.counts().is_exact(),
+            "{files} files: unresolved {:?}",
+            r.extraction_unresolved
+        );
+        assert!(
+            r.extraction_unresolved.tp > 0 || files < 100,
+            "unresolved imports should be exercised"
+        );
         for t in &r.targets {
-            assert!(t.impact.counts().is_exact(), "{files} files, change {}: {:?}", t.target, t.impact);
-            assert_eq!(t.distance_exact, t.truth_affected, "{}: shortest distances differ", t.target);
-            assert!(t.tests_known.counts().is_exact(), "{}: {:?}", t.target, t.tests_known);
+            assert!(
+                t.impact.counts().is_exact(),
+                "{files} files, change {}: {:?}",
+                t.target,
+                t.impact
+            );
+            assert_eq!(
+                t.distance_exact, t.truth_affected,
+                "{}: shortest distances differ",
+                t.target
+            );
+            assert!(
+                t.tests_known.counts().is_exact(),
+                "{}: {:?}",
+                t.target,
+                t.tests_known
+            );
         }
     }
 }
@@ -73,7 +120,12 @@ fn historical_evaluation_counts_found_and_missed_tests() {
     fs::create_dir(&repo).unwrap();
     init_repo(&repo).unwrap();
     write_file(&repo, "src/a.ts", "export const a = 1;\n").unwrap();
-    write_file(&repo, "src/b.ts", "import { a } from './a';\nexport const b = a;\n").unwrap();
+    write_file(
+        &repo,
+        "src/b.ts",
+        "import { a } from './a';\nexport const b = a;\n",
+    )
+    .unwrap();
     write_file(&repo, "src/c.ts", "export const c = 1;\n").unwrap();
     write_file(&repo, "tests/b.test.ts", "import { b } from '../src/b';\n").unwrap();
     write_file(&repo, "tests/c.test.ts", "import { c } from '../src/c';\n").unwrap();
@@ -97,7 +149,10 @@ fn historical_evaluation_counts_found_and_missed_tests() {
 
     let r = historical::evaluate(&path).unwrap();
     let c = &r.cases[0];
-    assert_eq!((c.changed_files, c.recommended, c.total_test_files), (1, 1, 2));
+    assert_eq!(
+        (c.changed_files, c.recommended, c.total_test_files),
+        (1, 1, 2)
+    );
     assert_eq!(c.reduction, Some(0.5));
     assert_eq!((c.failing, c.found, c.found_known), (3, 1, 1));
     assert_eq!(c.missed, vec!["tests/c.test.ts", "tests/legacy.spec.js"]);
@@ -123,7 +178,14 @@ fn unsupported_dataset_versions_and_missing_commits_are_errors() {
     commit_all(&repo, "only").unwrap();
 
     let v2 = tmp.path().join("v2.json");
-    fs::write(&v2, format!(r#"{{"version":2,"repo":{:?},"cases":[]}}"#, repo.to_string_lossy())).unwrap();
+    fs::write(
+        &v2,
+        format!(
+            r#"{{"version":2,"repo":{:?},"cases":[]}}"#,
+            repo.to_string_lossy()
+        ),
+    )
+    .unwrap();
     assert!(historical::evaluate(&v2).is_err());
 
     let bad = tmp.path().join("bad.json");
@@ -136,5 +198,8 @@ fn unsupported_dataset_versions_and_missing_commits_are_errors() {
     )
     .unwrap();
     let err = historical::evaluate(&bad).unwrap_err();
-    assert!(format!("{err:#}").contains("could not check out"), "{err:#}");
+    assert!(
+        format!("{err:#}").contains("could not check out"),
+        "{err:#}"
+    );
 }

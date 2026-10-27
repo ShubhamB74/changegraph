@@ -46,8 +46,17 @@ fn copy_dir(src: &Path, dst: &Path) {
 }
 
 fn git(dir: &Path, args: &[&str]) {
-    let out = Command::new("git").arg("-C").arg(dir).args(args).output().unwrap();
-    assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 }
 
 fn actual_report() -> Value {
@@ -97,7 +106,11 @@ fn first_difference(actual: &Value, golden: &Value, path: &str) -> Option<String
         }
         (Value::Array(a), Value::Array(g)) => {
             if a.len() != g.len() {
-                return Some(format!("{path}: actual has {} item(s), golden has {}", a.len(), g.len()));
+                return Some(format!(
+                    "{path}: actual has {} item(s), golden has {}",
+                    a.len(),
+                    g.len()
+                ));
             }
             a.iter()
                 .zip(g)
@@ -105,7 +118,9 @@ fn first_difference(actual: &Value, golden: &Value, path: &str) -> Option<String
                 .find_map(|(i, (x, y))| first_difference(x, y, &format!("{path}[{i}]")))
         }
         _ if actual == golden => None,
-        _ => Some(format!("{path}:\n    actual: {actual}\n    golden: {golden}")),
+        _ => Some(format!(
+            "{path}:\n    actual: {actual}\n    golden: {golden}"
+        )),
     }
 }
 
@@ -140,5 +155,7 @@ fn the_difference_finder_finds_differences() {
     let c = json!({"x": [1, 2], "z": null});
     assert!(first_difference(&a, &c, "$").unwrap().contains("$.x"));
     let d = json!({"x": [1, 2, {"y": "a"}]});
-    assert!(first_difference(&a, &d, "$").unwrap().contains("only in actual"));
+    assert!(first_difference(&a, &d, "$")
+        .unwrap()
+        .contains("only in actual"));
 }

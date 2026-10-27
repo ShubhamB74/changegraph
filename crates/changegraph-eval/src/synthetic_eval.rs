@@ -40,8 +40,12 @@ pub struct SyntheticResult {
 }
 
 fn extraction(report: &Report, truth: &Truth) -> (Score, Score, Score) {
-    let edges: BTreeSet<(String, String)> =
-        report.graph.edges.iter().map(|e| (e.from.clone(), e.to.clone())).collect();
+    let edges: BTreeSet<(String, String)> = report
+        .graph
+        .edges
+        .iter()
+        .map(|e| (e.from.clone(), e.to.clone()))
+        .collect();
     let external: BTreeSet<(String, String)> = report
         .graph
         .external_dependencies
@@ -101,8 +105,11 @@ pub fn evaluate(spec: &SyntheticSpec) -> Result<SyntheticResult> {
         let tool_set: BTreeSet<String> = tool_map.keys().cloned().collect();
         let truth_set: BTreeSet<String> = truth_map.keys().cloned().collect();
 
-        let truth_tests: BTreeSet<String> =
-            truth_set.iter().filter(|p| truth.tests.contains(*p)).cloned().collect();
+        let truth_tests: BTreeSet<String> = truth_set
+            .iter()
+            .filter(|p| truth.tests.contains(*p))
+            .cloned()
+            .collect();
         let recs = &report.test_recommendations.recommendations;
         let known: BTreeSet<String> = recs
             .iter()
@@ -115,7 +122,10 @@ pub fn evaluate(spec: &SyntheticSpec) -> Result<SyntheticResult> {
             target: target.clone(),
             truth_affected: truth_set.len(),
             impact: compare(&tool_set, &truth_set).into(),
-            distance_exact: truth_map.iter().filter(|(p, d)| tool_map.get(*p) == Some(*d)).count(),
+            distance_exact: truth_map
+                .iter()
+                .filter(|(p, d)| tool_map.get(*p) == Some(*d))
+                .count(),
             tests_known: compare(&known, &truth_tests).into(),
             recommended: recs.len(),
             total_test_files: total,

@@ -104,12 +104,15 @@ fn apply(dir: &Path, change: &Change) -> Result<()> {
     match change {
         Change::Modify { path, append } => {
             let p = dir.join(path);
-            let mut text = fs::read_to_string(&p).with_context(|| format!("modify: reading {path}"))?;
+            let mut text =
+                fs::read_to_string(&p).with_context(|| format!("modify: reading {path}"))?;
             text.push_str(append);
             fs::write(&p, text)?;
         }
         Change::Create { path, content } => write_file(dir, path, content)?,
-        Change::Delete { path } => fs::remove_file(dir.join(path)).with_context(|| format!("delete {path}"))?,
+        Change::Delete { path } => {
+            fs::remove_file(dir.join(path)).with_context(|| format!("delete {path}"))?
+        }
         Change::Rename { from, to } => {
             if let Some(parent) = dir.join(to).parent() {
                 fs::create_dir_all(parent)?;
@@ -130,7 +133,11 @@ pub fn run_scenario(s: &Scenario, repo_root: &Path) -> Result<ScenarioResult> {
     let dir = tmp.path();
     let fixture = repo_root.join(&s.fixture);
     if !fixture.is_dir() {
-        bail!("scenario `{}`: fixture {} does not exist", s.name, fixture.display());
+        bail!(
+            "scenario `{}`: fixture {} does not exist",
+            s.name,
+            fixture.display()
+        );
     }
     copy_dir(&fixture, dir)?;
     for (path, content) in &s.extra_files {
@@ -144,7 +151,8 @@ pub fn run_scenario(s: &Scenario, repo_root: &Path) -> Result<ScenarioResult> {
 
     let mut cfg = AnalysisConfig::new(dir);
     cfg.exclude = s.exclude.clone();
-    let report = analyze(&cfg).with_context(|| format!("scenario `{}`: analysis failed", s.name))?;
+    let report =
+        analyze(&cfg).with_context(|| format!("scenario `{}`: analysis failed", s.name))?;
     Ok(score(s, &report))
 }
 
@@ -152,7 +160,11 @@ fn score(s: &Scenario, report: &Report) -> ScenarioResult {
     let tool_affected = paths(report.impact.affected.iter().map(|a| a.path.as_str()));
     let truth_affected = paths(s.labels.affected.iter().map(String::as_str));
     let recs = &report.test_recommendations.recommendations;
-    let known = paths(recs.iter().filter(|r| r.basis == Basis::Known).map(|r| r.path.as_str()));
+    let known = paths(
+        recs.iter()
+            .filter(|r| r.basis == Basis::Known)
+            .map(|r| r.path.as_str()),
+    );
     let all = paths(recs.iter().map(|r| r.path.as_str()));
     let truth_tests = paths(s.labels.relevant_tests.iter().map(String::as_str));
     let uncertain = s.labels.uncertain.as_ref().map(|labels| {
@@ -203,11 +215,18 @@ pub fn aggregate(results: &[ScenarioResult]) -> ScenarioAggregate {
     let reductions: Vec<f64> = results.iter().filter_map(|r| r.reduction).collect();
     ScenarioAggregate {
         scenarios: results.len(),
-        exact_affected: results.iter().filter(|r| r.affected.counts().is_exact()).count(),
-        exact_tests_known: results.iter().filter(|r| r.tests_known.counts().is_exact()).count(),
+        exact_affected: results
+            .iter()
+            .filter(|r| r.affected.counts().is_exact())
+            .count(),
+        exact_tests_known: results
+            .iter()
+            .filter(|r| r.tests_known.counts().is_exact())
+            .count(),
         affected: a.into(),
         tests_known: k.into(),
         tests_all: t.into(),
-        mean_reduction: (!reductions.is_empty()).then(|| reductions.iter().sum::<f64>() / reductions.len() as f64),
+        mean_reduction: (!reductions.is_empty())
+            .then(|| reductions.iter().sum::<f64>() / reductions.len() as f64),
     }
 }

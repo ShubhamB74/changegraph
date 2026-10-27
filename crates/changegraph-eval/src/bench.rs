@@ -52,7 +52,11 @@ pub fn run_measured(cmd: &mut Command) -> Result<Measured> {
     };
     // ru_maxrss is in kilobytes on Linux and in bytes on macOS.
     let raw = usage.ru_maxrss as u64;
-    let kb = if cfg!(target_os = "macos") { raw / 1024 } else { raw };
+    let kb = if cfg!(target_os = "macos") {
+        raw / 1024
+    } else {
+        raw
+    };
     drop(child);
     Ok(Measured {
         wall_ms,
@@ -102,7 +106,11 @@ pub struct BenchResult {
 }
 
 pub fn default_bin() -> PathBuf {
-    let name = if cfg!(windows) { "changegraph.exe" } else { "changegraph" };
+    let name = if cfg!(windows) {
+        "changegraph.exe"
+    } else {
+        "changegraph"
+    };
     std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.join(name)))
@@ -146,7 +154,10 @@ pub fn run_bench(spec: &BenchSpec) -> Result<Vec<BenchResult>> {
                 .arg(&report_path);
             let m = run_measured(&mut cmd)?;
             if m.exit_code != 0 {
-                bail!("`changegraph analyze` exited with code {} on a {size}-file repository", m.exit_code);
+                bail!(
+                    "`changegraph analyze` exited with code {} on a {size}-file repository",
+                    m.exit_code
+                );
             }
             walls.push(m.wall_ms);
             rss_kb = match (rss_kb, m.max_rss_kb) {
@@ -178,7 +189,8 @@ pub fn run_bench(spec: &BenchSpec) -> Result<Vec<BenchResult>> {
 
 fn read_report(path: &Path) -> Result<Report> {
     let file = File::open(path).with_context(|| format!("opening {}", path.display()))?;
-    serde_json::from_reader(BufReader::new(file)).context("the report written by the CLI could not be parsed")
+    serde_json::from_reader(BufReader::new(file))
+        .context("the report written by the CLI could not be parsed")
 }
 
 #[cfg(all(test, unix))]
@@ -190,7 +202,10 @@ mod tests {
         let m = run_measured(Command::new("sh").args(["-c", "exit 3"])).unwrap();
         assert_eq!(m.exit_code, 3);
         assert!(m.wall_ms >= 0.0 && m.wall_ms < 10_000.0);
-        assert!(m.max_rss_kb.unwrap() > 0, "a started process has a non-zero peak RSS");
+        assert!(
+            m.max_rss_kb.unwrap() > 0,
+            "a started process has a non-zero peak RSS"
+        );
 
         let ok = run_measured(Command::new("sh").args(["-c", "true"])).unwrap();
         assert_eq!(ok.exit_code, 0);

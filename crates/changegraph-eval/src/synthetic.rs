@@ -178,10 +178,16 @@ pub fn generate(dir: &Path, spec: &SyntheticSpec) -> Result<Truth> {
 
 /// Reverse reachability on the true edges: every file that imports (transitively) one of
 /// `changed`, with its shortest distance. Written independently of the engine on purpose.
-pub fn truth_impact(edges: &BTreeSet<(String, String)>, changed: &[String]) -> BTreeMap<String, usize> {
+pub fn truth_impact(
+    edges: &BTreeSet<(String, String)>,
+    changed: &[String],
+) -> BTreeMap<String, usize> {
     let mut importers: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for (from, to) in edges {
-        importers.entry(to.as_str()).or_default().push(from.as_str());
+        importers
+            .entry(to.as_str())
+            .or_default()
+            .push(from.as_str());
     }
     let mut dist: BTreeMap<String, usize> = changed.iter().map(|c| (c.clone(), 0)).collect();
     let mut queue: VecDeque<String> = changed.iter().cloned().collect();
@@ -206,13 +212,22 @@ mod tests {
 
     #[test]
     fn relative_specifiers() {
-        assert_eq!(relative_specifier("src/d000/m00005.ts", "src/d000/m00002.ts"), "./m00002");
-        assert_eq!(relative_specifier("src/d001/m00060.ts", "src/d000/m00002.ts"), "../d000/m00002");
+        assert_eq!(
+            relative_specifier("src/d000/m00005.ts", "src/d000/m00002.ts"),
+            "./m00002"
+        );
+        assert_eq!(
+            relative_specifier("src/d001/m00060.ts", "src/d000/m00002.ts"),
+            "../d000/m00002"
+        );
         assert_eq!(
             relative_specifier("tests/d000/t00001.test.ts", "src/d002/m00123.ts"),
             "../../src/d002/m00123"
         );
-        assert_eq!(relative_specifier("src/d003/m1.ts", "src/d003/m1.ts"), "./m1");
+        assert_eq!(
+            relative_specifier("src/d003/m1.ts", "src/d003/m1.ts"),
+            "./m1"
+        );
     }
 
     #[test]
@@ -243,10 +258,14 @@ mod tests {
     fn truth_impact_is_reverse_reachability_with_shortest_distance() {
         let e = |a: &str, b: &str| (a.to_string(), b.to_string());
         // c -> b -> a, d -> a, d -> c
-        let edges: BTreeSet<_> = [e("c", "b"), e("b", "a"), e("d", "a"), e("d", "c")].into_iter().collect();
+        let edges: BTreeSet<_> = [e("c", "b"), e("b", "a"), e("d", "a"), e("d", "c")]
+            .into_iter()
+            .collect();
         let got = truth_impact(&edges, &["a".to_string()]);
-        let expected: BTreeMap<String, usize> =
-            [("b", 1), ("d", 1), ("c", 2)].into_iter().map(|(k, v)| (k.to_string(), v)).collect();
+        let expected: BTreeMap<String, usize> = [("b", 1), ("d", 1), ("c", 2)]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect();
         assert_eq!(got, expected);
     }
 

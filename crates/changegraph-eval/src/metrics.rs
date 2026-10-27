@@ -159,7 +159,14 @@ mod tests {
     #[test]
     fn compares_sets() {
         let c = compare(&set(&["a", "b", "c"]), &set(&["b", "c", "d", "e"]));
-        assert_eq!(c, Counts { tp: 2, fp: 1, fn_: 2 });
+        assert_eq!(
+            c,
+            Counts {
+                tp: 2,
+                fp: 1,
+                fn_: 2
+            }
+        );
         assert!(close(c.precision().unwrap(), 2.0 / 3.0));
         assert!(close(c.recall().unwrap(), 0.5));
         assert!(close(c.f1().unwrap(), 4.0 / 7.0));
@@ -186,9 +193,24 @@ mod tests {
     #[test]
     fn counts_add_for_micro_averaging() {
         let mut total = Counts::default();
-        total.add(&Counts { tp: 3, fp: 1, fn_: 0 });
-        total.add(&Counts { tp: 1, fp: 0, fn_: 2 });
-        assert_eq!(total, Counts { tp: 4, fp: 1, fn_: 2 });
+        total.add(&Counts {
+            tp: 3,
+            fp: 1,
+            fn_: 0,
+        });
+        total.add(&Counts {
+            tp: 1,
+            fp: 0,
+            fn_: 2,
+        });
+        assert_eq!(
+            total,
+            Counts {
+                tp: 4,
+                fp: 1,
+                fn_: 2
+            }
+        );
     }
 
     #[test]

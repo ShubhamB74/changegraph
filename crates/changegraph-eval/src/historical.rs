@@ -80,14 +80,19 @@ pub struct HistoricalResult {
 
 pub fn load_dataset(path: &Path) -> Result<(Dataset, PathBuf)> {
     let text = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-    let ds: Dataset = serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
+    let ds: Dataset =
+        serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
     if ds.version != 1 {
         bail!("unsupported dataset version {} (expected 1)", ds.version);
     }
     let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
     let repo = {
         let p = Path::new(&ds.repo);
-        if p.is_absolute() { p.to_path_buf() } else { base_dir.join(p) }
+        if p.is_absolute() {
+            p.to_path_buf()
+        } else {
+            base_dir.join(p)
+        }
     };
     if !repo.join(".git").exists() && git(&repo, &["rev-parse", "--git-dir"]).is_err() {
         bail!("dataset repo {} is not a Git repository", repo.display());
@@ -122,7 +127,11 @@ fn evaluate_case(repo: &Path, case: &Case) -> Result<CaseResult> {
             .map(|n| n.path.as_str())
             .collect();
 
-        let failing: BTreeSet<&str> = case.failing_after_change.iter().map(String::as_str).collect();
+        let failing: BTreeSet<&str> = case
+            .failing_after_change
+            .iter()
+            .map(String::as_str)
+            .collect();
         let missed: Vec<String> = failing
             .iter()
             .filter(|p| !recommended.contains(*p))
@@ -181,7 +190,10 @@ pub fn evaluate(dataset_path: &Path) -> Result<HistoricalResult> {
             .to_string(),
     ];
     if failing_total == 0 {
-        caveats.push("No failing tests in the dataset: recall is undefined, only reduction is reported.".to_string());
+        caveats.push(
+            "No failing tests in the dataset: recall is undefined, only reduction is reported."
+                .to_string(),
+        );
     }
 
     Ok(HistoricalResult {
@@ -191,9 +203,13 @@ pub fn evaluate(dataset_path: &Path) -> Result<HistoricalResult> {
         found_known_total,
         recall: (failing_total > 0).then(|| found_total as f64 / failing_total as f64),
         recall_ci95: wilson_interval(found_total, failing_total),
-        recall_known_only: (failing_total > 0).then(|| found_known_total as f64 / failing_total as f64),
+        recall_known_only: (failing_total > 0)
+            .then(|| found_known_total as f64 / failing_total as f64),
         cases_with_failures: cases.iter().filter(|c| c.failing > 0).count(),
-        cases_fully_covered: cases.iter().filter(|c| c.failing > 0 && c.missed.is_empty()).count(),
+        cases_fully_covered: cases
+            .iter()
+            .filter(|c| c.failing > 0 && c.missed.is_empty())
+            .count(),
         mean_reduction: mean(cases.iter().filter_map(|c| c.reduction).collect()),
         mean_reduction_when_complete: mean(
             cases
